@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-deskBg: #f2f4f7;       /* Desk surface background */
+  --color-paperBg: #fafaf8;      /* Light cream/white paper */
+  --color-paperSheet: #ffffff;   /* Pure white active paper sheets */
+  --color-boardBg: #2c2e35;      /* Sleek dark clipboard board backing */
+  --color-clipMetal: #9ca3af;    /* Metallic silver clip color */
+  --color-accentBlack: #18181b;  /* Professional dark text & primary buttons */
+  
+  --color-accentGreen: #15803d;  /* Professional green */
+  --color-accentGreen-light: #dcfce7;
+  
+  --color-accentGold: #b45309;   /* Professional amber */
+  --color-accentGold-light: #fef3c7;
+  
+  --color-accentRed: #b91c1c;    /* Professional crimson red */
+  --color-accentRed-light: #fee2e2;
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+  --font-mono: 'Courier Prime', 'Courier New', monospace;
+
+  --animate-pulse-slow: pulseSlow 3s infinite ease-in-out;
+
+  @keyframes pulseSlow {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+  }
+}
+
+/* Custom Scrollbar for Light theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f2f4f7;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 2px solid #f2f4f7;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+body {
+  @apply bg-deskBg text-neutral-800 font-sans antialiased selection:bg-neutral-200 selection:text-neutral-900 overflow-x-hidden;
+  /* Multi-layered radial gradients representing a working garage desk: grid overlay, grease oil drops, smudges, and coffee cup rings */
+  background-image: 
+    /* Oil grease smudge 1 (Top Left) */
+    radial-gradient(circle at 12% 220px, rgba(78, 60, 45, 0.16) 0px, rgba(78, 60, 45, 0.04) 80px, transparent 180px),
+    
+    /* Dark oil drop splatter 2 (Middle Right) */
+    radial-gradient(circle at 88% 480px, rgba(25, 25, 25, 0.22) 0px, rgba(25, 25, 25, 0.05) 50px, transparent 120px),
+    
+    /* Splash grease stain 3 (Bottom Left) */
+    radial-gradient(circle at 25% 820px, rgba(50, 40, 30, 0.16) 0px, rgba(50, 40, 30, 0.03) 100px, transparent 240px),
+    
+    /* Coffee cup ring smudge 4 (Top Right) */
+    radial-gradient(circle at 78% 180px, transparent 48px, rgba(85, 68, 51, 0.09) 50px, rgba(85, 68, 51, 0.05) 52px, transparent 55px),
+    
+    /* Clean Drafting grid dots */
+    radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 20px 20px;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* --- Tactile Skeuomorphic Styles --- */
+
+/* Lined paper texture effect */
+@utility paper-lined {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+
+/* Professional Clipboard Board Backplate */
+@utility clipboard-board {
+  background: #27282d;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 10px 10px;
+  box-shadow: 
+    0 10px 25px -5px rgba(0, 0, 0, 0.25), 
+    0 8px 10px -6px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255,255,255,0.1);
+  border: 1px solid #1a1b1e;
+}
+
+/* Realistic Metal Spring Clip */
+@utility clipboard-clip {
+  background: linear-gradient(180deg, #e5e7eb 0%, #9ca3af 100%);
+  border: 1px solid #6b7280;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.15), 
+    0 2px 4px -2px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* Paper page layout */
+@utility paper-sheet {
+  background-color: #fafafa;
+  color: #27272a;
+  box-shadow: 
+    0 4px 15px -3px rgba(0, 0, 0, 0.08), 
+    0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Stacked sheets visual effect */
+@utility paper-stacked {
+  box-shadow: 
+    0 1px 1px rgba(0,0,0,0.1),
+    2px 2px 0 #fff,
+    3px 3px 1px rgba(0,0,0,0.06),
+    5px 5px 0 #fff,
+    6px 6px 2px rgba(0,0,0,0.05),
+    0 10px 20px -5px rgba(0, 0, 0, 0.08);
+}
+
+/* Tactile Sticky Note style with curved peel shadow */
+@utility sticky-note {
+  box-shadow: 
+    0 1px 1px rgba(0,0,0,0.05),
+    1px 8px 12px -3px rgba(0,0,0,0.12),
+    inset 0 -8px 16px rgba(0,0,0,0.02);
+  border-bottom-right-radius: 15px 120px;
+}
+
+/* Lined notebook spiral rings */
+@utility spiral-ring {
+  background: linear-gradient(90deg, #9ca3af 0%, #f3f4f6 50%, #4b5563 100%);
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Professional Light Typed Inputs */
+@utility typewriter-input {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-bottom: 2px solid #9ca3af;
+  color: #1f2937;
+  font-family: 'Courier Prime', Courier, monospace;
+  @apply rounded-md px-3.5 py-2.5 transition-all duration-200 focus:outline-none focus:border-accentBlack focus:ring-1 focus:ring-accentBlack/15;
+}
+
+/* Realistic Thermal Receipt Stylings */
+@utility receipt-paper {
+  background-color: #ffffff;
+  color: #1a1c23;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+@utility receipt-serrated-bottom {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background-image: 
+    linear-gradient(-45deg, transparent 5px, #ffffff 5px), 
+    linear-gradient(45deg, transparent 5px, #ffffff 5px);
+  background-size: 10px 10px;
+  background-repeat: repeat-x;
+}
+
+@utility receipt-serrated-top {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background-image: 
+    linear-gradient(135deg, transparent 5px, #ffffff 5px), 
+    linear-gradient(-135deg, transparent 5px, #ffffff 5px);
+  background-size: 10px 10px;
+  background-repeat: repeat-x;
+}
