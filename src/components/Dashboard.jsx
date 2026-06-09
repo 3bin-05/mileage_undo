@@ -161,8 +161,30 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Ring-Bound Planner notebook sheet */}
-      <div className="relative paper-sheet paper-stacked bg-[#fafaf8] rounded-2xl p-6 md:p-10 pl-14 md:pl-16 shadow-xl overflow-hidden border border-gray-200">
+      {/* Ring-Bound Planner notebook sheet container */}
+      <div className="relative w-full overflow-visible">
+        
+        {/* Spiral metal binder rings on the left margin (placed outside overflow-hidden to prevent clipping) */}
+        <div className="absolute left-0 top-10 bottom-10 flex flex-col justify-between items-center w-12 z-20 pointer-events-none">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="relative w-full h-8 flex items-center">
+              {/* Loop Shadow on paper */}
+              <div className="absolute left-[-10px] top-[14px] w-8 h-2.5 bg-neutral-950/15 rounded-full blur-[1px] rotate-[8deg] origin-left"></div>
+              
+              {/* Metallic Spiral Loop */}
+              <div className="absolute left-[-12px] top-[10px] w-9 h-2.5 bg-gradient-to-b from-gray-300 via-white to-gray-500 rounded-full shadow-[1px_2px_3px_rgba(0,0,0,0.15)] border border-gray-400/25 rotate-[8deg] origin-left z-10"></div>
+              
+              {/* Punch Hole in paper */}
+              <div className="absolute left-[16px] top-[10px] w-2.5 h-2.5 rounded-full bg-[#27282d] shadow-[inset_1px_1.5px_2px_rgba(0,0,0,0.8)] border border-white/10 z-0"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Lined paper notebook sheet */}
+        <div className="relative paper-sheet paper-stacked bg-[#fafaf8] rounded-2xl p-6 md:p-10 pl-14 md:pl-16 shadow-xl overflow-hidden border border-gray-200">
+          
+          {/* Binder vertical red margin line */}
+          <div className="absolute left-10 md:left-12 top-0 bottom-0 w-[1px] bg-red-450/20 pointer-events-none"></div>
         
         {/* SVG Distress Filter for Rubber Stamp */}
         <svg className="absolute w-0 h-0" aria-hidden="true">
@@ -197,17 +219,7 @@ export default function Dashboard() {
           </span>
         </div>
 
-        {/* Spiral metal binder rings on the left margin */}
-        <div className="absolute left-4 top-10 bottom-10 flex flex-col justify-between items-center w-5 py-4 z-10 pointer-events-none">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex items-center space-x-1">
-              {/* Ring hole in sheet */}
-              <div className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1] border border-gray-300 shadow-inner"></div>
-              {/* Ring metal shape */}
-              <div className="w-8 h-4.5 spiral-ring rounded-full transform -translate-x-3"></div>
-            </div>
-          ))}
-        </div>
+
 
         {/* Notebook Content Grid */}
         <div className="space-y-8">
@@ -362,6 +374,27 @@ export default function Dashboard() {
                               </div>
                             </div>
                             
+                            {log.tripMode && (
+                              <div className="border-t border-gray-100 pt-2 font-mono text-[9px] space-y-1.5 text-left">
+                                <div>
+                                  <span className="text-gray-400 font-extrabold block">ROUTE PATH:</span>
+                                  <span className="text-neutral-900 font-bold uppercase block max-w-full truncate">
+                                    📍 {log.startLocation} ➔ {log.destination}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <span className="text-gray-400 font-extrabold block">AMOUNT SPENT:</span>
+                                    <span className="text-neutral-900 font-bold">₹{log.amountSpent}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-400 font-extrabold block">{log.fuelType === "EV" ? "CHARGE RATE:" : "FUEL PRICE:"}</span>
+                                    <span className="text-neutral-900 font-bold">₹{log.fuelPrice}/{log.fuelType === "EV" ? "%" : "L"}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="border-t border-gray-100 pt-2 text-left font-mono">
                               <span className="text-[8px] font-black text-neutral-800 tracking-wider block uppercase mb-0.5">
                                 [ AUDITOR REMARK ]
@@ -396,7 +429,7 @@ export default function Dashboard() {
         </div>
 
       </div>
-
     </div>
+  </div>
   );
 }

@@ -1,15 +1,48 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useStore } from "../store/useStore";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Copy, X, MessageSquare, Image as ImageIcon } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toPng } from "html-to-image";
+
+// Pure function to generate a stable, consistent 6-digit transaction ID from unique log metadata
+const getStableTxId = (idStr, timestampStr) => {
+  const source = idStr || timestampStr || "receipt_tx";
+  let hash = 0;
+  for (let i = 0; i < source.length; i++) {
+    hash = source.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(100000 + (hash % 900000));
+};
 
 export default function Receipt() {
   const { currentCalculation, receiptOpen, setReceiptOpen, personalityMode } = useStore();
   const receiptRef = useRef(null);
   const receiptPaperRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
+
+  // Destructure variables at the top with a fallback to satisfy scoping rules in closures
+  const {
+    vehicle = "",
+    fuelType = "",
+    distance = 0,
+    fuelFilled = 0,
+    district = "",
+    mileage = 0,
+    rating = "",
+    badgeName = "",
+    badgeEmoji = "",
+    badgeDesc = "",
+    roast = "",
+    isAI = false,
+    timestamp = "",
+    tripMode = false,
+    startLocation = "",
+    destination = "",
+    amountSpent = null,
+    fuelPrice = null,
+    id = ""
+  } = currentCalculation || {};
 
   const downloadReceiptImage = async () => {
     if (!receiptPaperRef.current) return;
@@ -30,8 +63,9 @@ export default function Receipt() {
         }
       });
       
+      const fileSuffix = timestamp ? new Date(timestamp).getTime() : 'receipt';
       const link = document.createElement('a');
-      link.download = `mileage-undo-${vehicle ? vehicle.replace(/\s+/g, '-').toLowerCase() : 'receipt'}-${Date.now()}.png`;
+      link.download = `mileage-undo-${vehicle ? vehicle.replace(/\s+/g, '-').toLowerCase() : 'receipt'}-${fileSuffix}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -41,6 +75,9 @@ export default function Receipt() {
       setDownloading(false);
     }
   };
+
+  // Memoize stable transaction ID for render purity
+  const txId = useMemo(() => getStableTxId(id, timestamp), [id, timestamp]);
 
   // Trigger confetti for Excellent mileage rating
   useEffect(() => {
@@ -69,22 +106,6 @@ export default function Receipt() {
 
   if (!receiptOpen || !currentCalculation) return null;
 
-  const {
-    vehicle,
-    fuelType,
-    distance,
-    fuelFilled,
-    district,
-    mileage,
-    rating,
-    badgeName,
-    badgeEmoji,
-    badgeDesc,
-    roast,
-    isAI,
-    timestamp
-  } = currentCalculation;
-
   // Format timestamp
   const dateFormatted = timestamp 
     ? new Date(timestamp).toLocaleDateString("en-IN", {
@@ -103,31 +124,63 @@ export default function Receipt() {
     return ((clamped - minM) / (maxM - minM)) * 100;
   };
 
+  // Humorous Malayalam Mileage Verdict System
+  const getMileageVerdict = () => {
+    if (rating === "Excellent") {
+      return {
+        label: "Achan Happy 👴",
+        style: "verdict-stamp-achan",
+        subtext: "Shabaash! Comparing with neighbor's son now."
+      };
+    }
+    if (rating === "Good" || rating === "Average") {
+      return {
+        label: "Uncle Acceptable 🧔",
+        style: "verdict-stamp-uncle",
+        subtext: "Mild nods of approval from local tea shop."
+      };
+    }
+    return {
+      label: "Pump Owner Happy ⛽",
+      style: "verdict-stamp-pump",
+      subtext: "Sponsoring pump owner's next Dubai trip!"
+    };
+  };
+
   // WhatsApp share link generator
   const getWhatsAppShareUrl = () => {
-    const text = `*Mileage Undo Report* 🧾
-    
-🚗 *Vehicle:* ${vehicle} (${fuelType})
-🛣️ *Distance:* ${distance} km
-⛽ *Consumed:* ${fuelType === "EV" ? fuelFilled + "% battery" : fuelFilled + " L"}
-🔥 *Real Mileage:* ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}
-
-🏆 *Awarded Rank:* ${badgeEmoji} ${badgeName}
-💬 *${personalityMode} says:*
-"${roast}"
-
-Calculate yours at *Mileage Undo*! 🚀`;
+    let text = `*Mileage Undo Report* 🧾\n\n`;
+    text += `🚗 *Vehicle:* ${vehicle} (${fuelType})\n`;
+    if (tripMode) {
+      text += `🛣️ *Route:* ${startLocation} ➔ ${destination}\n`;
+    }
+    text += `🛣️ *Distance:* ${distance} km\n`;
+    if (tripMode) {
+      text += `💰 *Spent:* ₹${amountSpent} (@ ₹${fuelPrice}/${fuelType === "EV" ? "%" : "L"})\n`;
+    }
+    text += `⛽ *Consumed:* ${fuelType === "EV" ? fuelFilled + "% battery" : fuelFilled + " L"}\n`;
+    text += `🔥 *Real Mileage:* ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}\n\n`;
+    text += `🏆 *Awarded Rank:* ${badgeEmoji} ${badgeName}\n`;
+    text += `💬 *${personalityMode} says:*\n"${roast}"\n\n`;
+    text += `Calculate yours at *Mileage Undo*! 🚀`;
 
     return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   };
 
   // Clipboard copy handler
   const copyToClipboard = () => {
-    const text = `Mileage Undo Report 🧾
-Vehicle: ${vehicle} (${fuelType})
-Real Mileage: ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}
-Rank: ${badgeEmoji} ${badgeName}
-Roast: "${roast}"`;
+    let text = `Mileage Undo Report 🧾\n`;
+    text += `Vehicle: ${vehicle} (${fuelType})\n`;
+    if (tripMode) {
+      text += `Route: ${startLocation} ➔ ${destination}\n`;
+    }
+    text += `Distance: ${distance} km\n`;
+    if (tripMode) {
+      text += `Fuel Cost: ₹${amountSpent} (@ ₹${fuelPrice}/${fuelType === "EV" ? "%" : "L"})\n`;
+    }
+    text += `Real Mileage: ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}\n`;
+    text += `Rank: ${badgeEmoji} ${badgeName}\n`;
+    text += `Roast: "${roast}"`;
     
     navigator.clipboard.writeText(text);
     alert("Receipt summary copied to clipboard! 📋");
@@ -150,13 +203,13 @@ Roast: "${roast}"`;
         
         {/* Top Control Buttons */}
         <div className="flex justify-between items-center mb-2 px-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 flex items-center space-x-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-white flex items-center space-x-1">
             <span className="w-1.5 h-1.5 bg-accentGreen rounded-full animate-ping"></span>
             <span>Receipt Issued</span>
           </span>
           <button 
             onClick={() => setReceiptOpen(false)}
-            className="p-1.5 bg-darkCard border border-darkBorder hover:border-red-500 rounded-lg text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 bg-darkCard border border-darkBorder hover:border-red-500 rounded-lg text-white/80 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
@@ -190,7 +243,7 @@ Roast: "${roast}"`;
             {/* Receipt details metadata */}
             <div className="flex justify-between text-[10px] font-bold opacity-80 border-b border-dashed border-gray-400 pb-2 text-left">
               <div>
-                <p>TX: #MU-{Math.floor(100000 + Math.random() * 900000)}</p>
+                <p>TX: #MU-{txId}</p>
                 <p>LOC: {district.toUpperCase()}, KERALA</p>
               </div>
               <div className="text-right">
@@ -217,6 +270,28 @@ Roast: "${roast}"`;
                 <span>{fuelType === "EV" ? "BATTERY CONSUMED" : "FUEL FILLED"}</span>
                 <span className="text-right">{fuelFilled} {fuelType === "EV" ? "%" : "L"}</span>
               </div>
+
+              {/* Trip Mode parameters if active */}
+              {tripMode && (
+                <div className="border-b border-dashed border-gray-400 pb-2.5 space-y-1.5 font-mono text-[10px]">
+                  <div className="flex justify-between opacity-85">
+                    <span>ROUTE FROM</span>
+                    <span className="text-right uppercase max-w-[170px] truncate">{startLocation}</span>
+                  </div>
+                  <div className="flex justify-between opacity-85">
+                    <span>ROUTE TO</span>
+                    <span className="text-right uppercase max-w-[170px] truncate">{destination}</span>
+                  </div>
+                  <div className="flex justify-between opacity-85">
+                    <span>AMOUNT SPENT</span>
+                    <span className="text-right">₹{amountSpent}</span>
+                  </div>
+                  <div className="flex justify-between opacity-85">
+                    <span>{fuelType === "EV" ? "CHARGE RATE" : "FUEL PRICE"}</span>
+                    <span className="text-right">₹{fuelPrice}/{fuelType === "EV" ? "%" : "L"}</span>
+                  </div>
+                </div>
+              )}
               
               <div className="flex justify-between font-extrabold text-base pt-2.5">
                 <span>REAL MILEAGE:</span>
@@ -248,6 +323,21 @@ Roast: "${roast}"`;
                 <span>LEGEND (30)</span>
               </div>
             </div>
+
+            {/* Humorous Mileage Verdict Stamp System */}
+            {(() => {
+              const verdict = getMileageVerdict();
+              return (
+                <div className="verdict-stamp-box">
+                  <div className={`verdict-stamp ${verdict.style}`}>
+                    {verdict.label}
+                  </div>
+                  <div className="verdict-stamp-subtext opacity-70">
+                    {verdict.subtext}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Gamification Badge Box */}
             <div className="p-3 bg-gray-200/80 border border-gray-300 rounded-lg text-center space-y-1">
@@ -320,7 +410,7 @@ Roast: "${roast}"`;
             <span>Share text summary on WhatsApp</span>
           </a>
 
-          <p className="text-[10px] text-center text-gray-500 leading-snug">
+          <p className="text-[10px] text-center text-white/90 leading-snug">
             💡 <strong>WhatsApp Photo Sharing:</strong> Click <strong>Save Photo</strong> to download the receipt card image, then send the photo directly to your WhatsApp chats!
           </p>
         </div>

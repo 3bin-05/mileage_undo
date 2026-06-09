@@ -12,12 +12,18 @@
   
   --color-accentGreen: #15803d;  /* Professional green */
   --color-accentGreen-light: #dcfce7;
+  --color-accentGreen-dark: #166534;
   
   --color-accentGold: #b45309;   /* Professional amber */
   --color-accentGold-light: #fef3c7;
   
   --color-accentRed: #b91c1c;    /* Professional crimson red */
   --color-accentRed-light: #fee2e2;
+
+  --color-darkBg: #08090d;
+  --color-darkSurface: #0f111a;
+  --color-darkCard: #171a26;
+  --color-darkBorder: rgba(255, 255, 255, 0.08);
 
   --font-sans: 'Outfit', 'Inter', sans-serif;
   --font-mono: 'Courier Prime', 'Courier New', monospace;
@@ -49,25 +55,39 @@
 
 body {
   @apply bg-deskBg text-neutral-800 font-sans antialiased selection:bg-neutral-200 selection:text-neutral-900 overflow-x-hidden;
-  /* Multi-layered radial gradients representing a working garage desk: grid overlay, grease oil drops, smudges, and coffee cup rings */
-  background-image: 
-    /* Oil grease smudge 1 (Top Left) */
-    radial-gradient(circle at 12% 220px, rgba(78, 60, 45, 0.16) 0px, rgba(78, 60, 45, 0.04) 80px, transparent 180px),
-    
-    /* Dark oil drop splatter 2 (Middle Right) */
-    radial-gradient(circle at 88% 480px, rgba(25, 25, 25, 0.22) 0px, rgba(25, 25, 25, 0.05) 50px, transparent 120px),
-    
-    /* Splash grease stain 3 (Bottom Left) */
-    radial-gradient(circle at 25% 820px, rgba(50, 40, 30, 0.16) 0px, rgba(50, 40, 30, 0.03) 100px, transparent 240px),
-    
-    /* Coffee cup ring smudge 4 (Top Right) */
-    radial-gradient(circle at 78% 180px, transparent 48px, rgba(85, 68, 51, 0.09) 50px, rgba(85, 68, 51, 0.05) 52px, transparent 55px),
-    
-    /* Clean Drafting grid dots */
-    radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 20px 20px;
-  background-attachment: fixed;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Beautiful blurred grid layout background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-deskBg);
+  background-image: 
+    /* Ambient glassmorphic glowing spots */
+    radial-gradient(circle at 15% 15%, rgba(21, 128, 61, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 85% 30%, rgba(180, 83, 9, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 50% 75%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+    /* Blurred grid layout lines */
+    linear-gradient(rgba(0, 0, 0, 0.04) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1.5px, transparent 1.5px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+  background-attachment: fixed;
+  filter: blur(1.2px);
+  pointer-events: none;
+  animation: moveGrid 24s linear infinite;
+}
+
+@keyframes moveGrid {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 0 0, 0 0, 0 0, 28px 28px, 28px 28px;
+  }
 }
 
 /* --- Tactile Skeuomorphic Styles --- */
@@ -181,3 +201,71 @@ body {
   background-size: 10px 10px;
   background-repeat: repeat-x;
 }
+
+/* Custom interactive map and search suggestions styling */
+.trip-map-wrapper {
+  position: relative;
+  border: 1px solid #d1d5db;
+  border-bottom: 3px solid #9ca3af;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.06);
+}
+
+.search-suggestion-item {
+  transition: all 0.2s ease;
+}
+
+/* Malayalam Mileage Verdict Rubber Stamp Styling */
+.verdict-stamp-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem auto;
+  padding: 0.5rem;
+}
+
+.verdict-stamp {
+  position: relative;
+  display: inline-block;
+  padding: 8px 18px;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  border: 4px double;
+  border-radius: 4px;
+  mix-blend-mode: multiply;
+  filter: url(#stamp-distress);
+  text-align: center;
+  user-select: none;
+}
+
+.verdict-stamp-achan {
+  color: rgba(21, 128, 61, 0.85); /* Accent green */
+  border-color: rgba(21, 128, 61, 0.85);
+  transform: rotate(-4deg);
+}
+
+.verdict-stamp-uncle {
+  color: rgba(180, 83, 9, 0.85); /* Accent gold */
+  border-color: rgba(180, 83, 9, 0.85);
+  transform: rotate(3deg);
+}
+
+.verdict-stamp-pump {
+  color: rgba(185, 28, 28, 0.85); /* Accent red */
+  border-color: rgba(185, 28, 28, 0.85);
+  transform: rotate(-6deg);
+}
+
+.verdict-stamp-subtext {
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+

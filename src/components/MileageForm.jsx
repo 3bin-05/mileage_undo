@@ -13,6 +13,7 @@ import {
 import { fetchCommunityStats } from "../utils/firebase";
 import { getAIRoast } from "../utils/gemini";
 import { Fuel, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
+import TripMap from "./TripMap";
 
 export default function MileageForm() {
   const { 
@@ -25,6 +26,9 @@ export default function MileageForm() {
     addHistoryEntry
   } = useStore();
 
+  // Mode Selection State
+  const [mode, setMode] = useState("odometer"); // "odometer" | "trip"
+
   // Form State
   const [vehicle, setVehicle] = useState("");
   const [fuelType, setFuelType] = useState("Petrol");
@@ -32,6 +36,11 @@ export default function MileageForm() {
   const [fuelFilled, setFuelFilled] = useState("");
   const [district, setDistrict] = useState("Ernakulam");
   const [loading, setLoading] = useState(false);
+
+  // Trip Mode specific state
+  const [amountSpent, setAmountSpent] = useState("");
+  const [fuelPrice, setFuelPrice] = useState("116");
+  const [routeDetails, setRouteDetails] = useState(null); // { startName, destName, distance }
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState([]);
@@ -48,6 +57,8 @@ export default function MileageForm() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+
 
   // Handle vehicle input changes
   const handleVehicleChange = (e) => {
@@ -76,11 +87,29 @@ export default function MileageForm() {
   // Form submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!vehicle || !distance || !fuelFilled) return;
+
+    // Resolve distance & fuel quantities based on Mode
+    const finalDistance = mode === "trip" ? parseFloat(distance) : parseFloat(distance);
+    
+    let finalFuelFilled = parseFloat(fuelFilled);
+    if (mode === "trip") {
+      const spent = parseFloat(amountSpent);
+      const price = parseFloat(fuelPrice);
+      if (isNaN(spent) || isNaN(price) || price <= 0) {
+        alert("Please enter a valid amount spent and fuel price.");
+        return;
+      }
+      finalFuelFilled = parseFloat((spent / price).toFixed(2));
+    }
+
+    if (!vehicle || isNaN(finalDistance) || isNaN(finalFuelFilled) || finalDistance <= 0 || finalFuelFilled <= 0) {
+      alert("Please verify all input values. Trip distance and fuel quantity must be positive numbers.");
+      return;
+    }
 
     setLoading(true);
     try {
-      const mileage = calculateMileage(distance, fuelFilled, fuelType);
+      const mileage = calculateMileage(finalDistance, finalFuelFilled, fuelType);
       const mfgClaimObj = findManufacturerClaim(vehicle);
       const manufacturerClaim = mfgClaimObj ? mfgClaimObj.claim : null;
       const communityStats = await fetchCommunityStats(vehicle);
@@ -101,8 +130,8 @@ export default function MileageForm() {
       const entry = {
         vehicle,
         fuelType,
-        distance: parseFloat(distance),
-        fuelFilled: parseFloat(fuelFilled),
+        distance: finalDistance,
+        fuelFilled: finalFuelFilled,
         district,
         mileage,
         rating,
@@ -110,7 +139,13 @@ export default function MileageForm() {
         badgeEmoji: badge.emoji,
         badgeDesc: badge.desc,
         roast: roastResponse.roast,
-        isAI: roastResponse.isAI
+        isAI: roastResponse.isAI,
+        // Trip mode details
+        tripMode: mode === "trip",
+        startLocation: mode === "trip" && routeDetails ? routeDetails.startName : null,
+        destination: mode === "trip" && routeDetails ? routeDetails.destName : null,
+        amountSpent: mode === "trip" ? parseFloat(amountSpent) : null,
+        fuelPrice: mode === "trip" ? parseFloat(fuelPrice) : null
       };
 
       const savedEntry = await addHistoryEntry(entry);
@@ -171,9 +206,34 @@ export default function MileageForm() {
           </div>
         </div>
 
-        {/* Input fields */}
+        {/* Skeuomorphic Calculator Mode Switcher */}
+        <div className="w-full flex p-1 bg-neutral-200/60 border border-gray-300 rounded-xl max-w-sm mx-auto shadow-inner select-none">
+          <button
+            type="button"
+            onClick={() => setMode("odometer")}
+            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer ${
+              mode === "odometer"
+                ? "bg-neutral-900 text-white shadow-md transform scale-102"
+                : "text-gray-500 hover:text-neutral-900"
+            }`}
+          >
+            🚗 Odometer Mode
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("trip")}
+            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-300 cursor-pointer ${
+              mode === "trip"
+                ? "bg-neutral-900 text-white shadow-md transform scale-102"
+                : "text-gray-500 hover:text-neutral-900"
+            }`}
+          >
+            🗺️ Trip Mode
+          </button>
+        </div>
+
+        {/* Common top input fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
           {/* Vehicle Autocomplete */}
           <div className="relative text-left" ref={dropdownRef}>
             <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
@@ -214,8 +274,15 @@ export default function MileageForm() {
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setFuelType(type)}
-                  className={`py-2 text-[10px] font-bold rounded-lg border transition-all duration-200 ${
+                  onClick={() => {
+                    setFuelType(type);
+                    if (type === "EV") {
+                      setFuelPrice("10");
+                    } else {
+                      setFuelPrice("116");
+                    }
+                  }}
+                  className={`py-2 text-[10px] font-bold rounded-lg border transition-all duration-200 cursor-pointer ${
                     fuelType === type
                       ? "bg-neutral-900 text-white border-neutral-900"
                       : "bg-white border-gray-300 text-gray-500 hover:text-black hover:border-gray-500"
@@ -226,46 +293,115 @@ export default function MileageForm() {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Distance Run */}
-          <div className="text-left">
-            <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
-              3. Odometer Trip Distance
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                required
-                placeholder="0.00"
-                value={distance}
-                onChange={(e) => setDistance(e.target.value)}
-                className="w-full typewriter-input text-xs"
-              />
-              <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">KM</span>
-            </div>
+        {/* Dynamic TripMap integration */}
+        {mode === "trip" && (
+          <div className="pt-2 border-t border-dashed border-gray-250">
+            <TripMap 
+              onDistanceCalculated={(d) => setDistance(d.toString())} 
+              onRouteDetailsSet={(details) => setRouteDetails(details)}
+            />
           </div>
+        )}
 
-          {/* Fuel filled quantity */}
-          <div className="text-left">
-            <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
-              4. {fuelType === "EV" ? "Battery Consumed" : "Fuel Filled Quantity"}
-            </label>
-            <div className="relative">
-              <input
-                type="number"
-                step="0.01"
-                required
-                placeholder="0.00"
-                value={fuelFilled}
-                onChange={(e) => setFuelFilled(e.target.value)}
-                className="w-full typewriter-input text-xs"
-              />
-              <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">
-                {fuelType === "EV" ? "PERCENT (%)" : "LITRES (L)"}
-              </span>
-            </div>
-          </div>
+        {/* Mode-specific and common bottom input fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-dashed border-gray-250">
+          {mode === "odometer" ? (
+            <>
+              {/* Distance Run */}
+              <div className="text-left">
+                <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                  3. Odometer Trip Distance
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={distance}
+                    onChange={(e) => setDistance(e.target.value)}
+                    className="w-full typewriter-input text-xs"
+                  />
+                  <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">KM</span>
+                </div>
+              </div>
+
+              {/* Fuel filled quantity */}
+              <div className="text-left">
+                <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                  4. {fuelType === "EV" ? "Battery Consumed" : "Fuel Filled Quantity"}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={fuelFilled}
+                    onChange={(e) => setFuelFilled(e.target.value)}
+                    className="w-full typewriter-input text-xs"
+                  />
+                  <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">
+                    {fuelType === "EV" ? "PERCENT (%)" : "LITRES (L)"}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Amount Spent on Fuel */}
+              <div className="text-left">
+                <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                  3. Amount Spent on {fuelType === "EV" ? "Charging" : "Fuel"}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="1"
+                    required
+                    placeholder="e.g. 1000"
+                    value={amountSpent}
+                    onChange={(e) => setAmountSpent(e.target.value)}
+                    className="w-full typewriter-input text-xs"
+                  />
+                  <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">INR (₹)</span>
+                </div>
+              </div>
+
+              {/* Fuel Price per Litre */}
+              <div className="text-left">
+                <label className="block text-[10px] font-extrabold text-neutral-500 mb-1.5 uppercase tracking-wider">
+                  4. {fuelType === "EV" ? "Electricity Rate per %" : "Fuel Price per Litre"}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder={fuelType === "EV" ? "10.00" : "116.00"}
+                    value={fuelPrice}
+                    onChange={(e) => setFuelPrice(e.target.value)}
+                    className="w-full typewriter-input text-xs"
+                  />
+                  <span className="absolute right-3.5 top-3 text-[10px] font-mono font-bold text-gray-400">
+                    {fuelType === "EV" ? "₹ / %" : "₹ / L"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Estimated consumption helper display */}
+              {amountSpent && fuelPrice && parseFloat(fuelPrice) > 0 && (
+                <div className="md:col-span-2 p-3 bg-neutral-100 border border-dashed border-gray-300 rounded-xl text-neutral-800 text-[10px] font-bold uppercase tracking-wider flex items-center justify-between shadow-xs">
+                  <span className="text-gray-500">Calculated volume consumed:</span>
+                  <span className="font-mono font-black text-neutral-900 text-xs">
+                    {(parseFloat(amountSpent) / parseFloat(fuelPrice)).toFixed(2)} {fuelType === "EV" ? "% Battery" : "Litres (L)"}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
 
           {/* District selector */}
           <div className="text-left">

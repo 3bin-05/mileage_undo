@@ -473,7 +473,6 @@ export const generateLocalRoast = ({
   vehicle,
   mileage,
   manufacturerMileage,
-  communityAverage,
   personalityMode,
   language
 }) => {
@@ -481,7 +480,7 @@ export const generateLocalRoast = ({
   const lang = ROASTS[pMode][language] ? language : "English";
   
   // Determine rating based on default benchmarks if manufacturer claim isn't present
-  let rating = "Average";
+  let rating;
   const mfg = parseFloat(manufacturerMileage);
   
   if (mfg && !isNaN(mfg)) {

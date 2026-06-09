@@ -76,7 +76,7 @@ export const LANGUAGES = [
  * For normal fuel: km / Litres
  * For EV: km / Battery %
  */
-export const calculateMileage = (distance, fuelFilled, fuelType) => {
+export const calculateMileage = (distance, fuelFilled) => {
   const dist = parseFloat(distance);
   const fuel = parseFloat(fuelFilled);
 
@@ -139,7 +139,7 @@ export const evaluateMileageRating = (mileage, manufacturerClaim, fuelType) => {
 /**
  * Assign Gamification badges / ranks
  */
-export const getBadgeForCalculation = (rating, fuelType, mileage) => {
+export const getBadgeForCalculation = (rating, fuelType) => {
   if (fuelType === "EV") {
     if (rating === "Excellent") return { name: "Green Wizard ⚡", emoji: "🧙‍♂️", desc: "Squeezing every meter out of those electrons." };
     if (rating === "Good") return { name: "Silent Commuter 🔇", emoji: "🚗", desc: "Efficient, silent, and responsible." };
