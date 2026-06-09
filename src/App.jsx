@@ -5,12 +5,13 @@ import MileageForm from "./components/MileageForm";
 import Receipt from "./components/Receipt";
 import Dashboard from "./components/Dashboard";
 import CommunityLeaderboard from "./components/CommunityLeaderboard";
+import LegalPages from "./components/LegalPages";
 import Preloader from "./components/Preloader";
 import { AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 
 export default function App() {
-  const { activeTab } = useStore();
+  const { activeTab, setActiveTab } = useStore();
   const [isLoading, setIsLoading] = useState(true);
 
   return (
@@ -102,6 +103,8 @@ export default function App() {
         {activeTab === "history" && <Dashboard />}
 
         {activeTab === "leaderboard" && <CommunityLeaderboard />}
+
+        {["terms", "privacy", "disclaimer", "licence"].includes(activeTab) && <LegalPages />}
       </main>
 
       {/* Thermal Receipt Modal Drawer overlay */}
@@ -112,9 +115,10 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p>© {new Date().getFullYear()} MILEAGE UNDO REGISTRY. ALL RIGHTS RESERVED.</p>
           <div className="flex space-x-4">
-            <span className="hover:text-neutral-950 cursor-pointer">TERMS</span>
-            <span className="hover:text-neutral-950 cursor-pointer">PRIVACY</span>
-            <span className="hover:text-neutral-950 cursor-pointer">DISCLAIMER</span>
+            <span onClick={() => setActiveTab("terms")} className="hover:text-neutral-955 cursor-pointer">TERMS</span>
+            <span onClick={() => setActiveTab("privacy")} className="hover:text-neutral-955 cursor-pointer">PRIVACY</span>
+            <span onClick={() => setActiveTab("disclaimer")} className="hover:text-neutral-955 cursor-pointer">DISCLAIMER</span>
+            <span onClick={() => setActiveTab("licence")} className="hover:text-neutral-955 cursor-pointer">LICENCE</span>
           </div>
         </div>
       </footer>

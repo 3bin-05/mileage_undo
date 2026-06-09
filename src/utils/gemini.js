@@ -1,24 +1,35 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { generateLocalRoast } from "./roastEngine";
+import { evaluateMileageRating } from "./mileageEngine";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const rawApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const apiURL = import.meta.env.VITE_GEMINI_API_URL; // Optional custom endpoint
 
+// Split by comma to support multiple keys (key rotation / load balancing)
+const apiKeys = (rawApiKey || "")
+  .split(",")
+  .map(k => k.trim())
+  .filter(k => k && k !== "undefined" && !k.includes("YOUR_"));
+
 export const isGeminiConfigured = 
-  (!!apiKey && apiKey !== "" && apiKey !== "undefined" && !apiKey.includes("YOUR_")) ||
+  apiKeys.length > 0 ||
   (!!apiURL && apiURL !== "" && apiURL !== "undefined" && !apiURL.includes("YOUR_"));
 
-let genAI = null;
-if (apiKey && !apiKey.includes("YOUR_")) {
+// Keep track of key index for round-robin rotation
+let currentKeyIndex = 0;
+
+// Initialize clients array
+const genAIInstances = apiKeys.map(key => {
   try {
-    genAI = new GoogleGenerativeAI(apiKey);
+    return new GoogleGenerativeAI(key);
   } catch (e) {
-    console.error("Failed to initialize Gemini SDK:", e);
+    console.error("Failed to initialize Gemini SDK for key:", e);
+    return null;
   }
-}
+}).filter(inst => inst !== null);
 
 /**
- * Request a roast from Gemini AI
+ * Request a roast from Gemini AI (with key rotation, local caching, and robust local fallbacks)
  */
 export const getAIRoast = async ({
   vehicle,
@@ -29,7 +40,25 @@ export const getAIRoast = async ({
   language,
   fuelType
 }) => {
-  // If not configured, immediately use local roast engine
+  // 1. Calculate vehicle performance rating for caching classification
+  const rating = evaluateMileageRating(mileage, manufacturerMileage, fuelType || "Petrol");
+  
+  // 2. Normalize inputs to build a stable cache key
+  const normVehicle = (vehicle || "").trim().toLowerCase().replace(/\s+/g, "_");
+  const cacheKey = `roast_cache:${normVehicle}:${personalityMode}:${language}:${rating}`;
+  
+  // 3. Check LocalStorage cache first (saves 100% API usage for identical query patterns)
+  try {
+    const cachedRoast = localStorage.getItem(cacheKey);
+    if (cachedRoast) {
+      console.log(`Cache Hit: Retrieved roast for ${vehicle} from browser storage.`);
+      return { roast: cachedRoast, isAI: true, isCached: true };
+    }
+  } catch (err) {
+    console.warn("Failed to access local storage cache:", err);
+  }
+
+  // 4. If not configured, immediately use local roast engine
   if (!isGeminiConfigured) {
     console.log("Gemini not configured. Falling back to local roast engine.");
     return {
@@ -75,7 +104,7 @@ export const getAIRoast = async ({
     6. Do not include introductory text like "Here is your roast:" or formatting, just output the roast itself.
   `;
 
-  // Option 1: Call custom proxy API if URL is provided
+  // 5. Try Option A: Custom Proxy API if URL is provided
   if (apiURL && !apiURL.includes("YOUR_")) {
     try {
       const response = await fetch(apiURL, {
@@ -85,27 +114,53 @@ export const getAIRoast = async ({
       });
       if (response.ok) {
         const data = await response.json();
-        return { roast: data.roast || data.text || data.response, isAI: true };
+        const roastText = data.roast || data.text || data.response;
+        if (roastText) {
+          // Cache successful proxy response
+          try {
+            localStorage.setItem(cacheKey, roastText);
+          } catch (e) {}
+          return { roast: roastText, isAI: true };
+        }
       }
       throw new Error(`Proxy API returned status ${response.status}`);
     } catch (e) {
-      console.warn("Custom API endpoint failed, trying direct SDK if available...", e);
+      console.warn("Custom API endpoint failed, checking SDK fallbacks...", e);
     }
   }
 
-  // Option 2: Call direct Gemini SDK if API Key is configured
-  if (genAI) {
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Use the latest flash model
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
-      return { roast: text, isAI: true };
-    } catch (e) {
-      console.error("Gemini SDK execution error:", e);
+  // 6. Try Option B: Direct Gemini SDK with key rotation load balancing
+  if (genAIInstances.length > 0) {
+    // Attempt with each available key in rotation loop
+    for (let attempt = 0; attempt < genAIInstances.length; attempt++) {
+      // Pick key in round-robin fashion
+      const keyIdx = (currentKeyIndex + attempt) % genAIInstances.length;
+      const genAI = genAIInstances[keyIdx];
+
+      try {
+        console.log(`Attempting Gemini API call with key slot #${keyIdx + 1}/${genAIInstances.length}`);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text().trim();
+        
+        if (text) {
+          // Update key index state for next calls
+          currentKeyIndex = (keyIdx + 1) % genAIInstances.length;
+          // Cache the response
+          try {
+            localStorage.setItem(cacheKey, text);
+          } catch (e) {}
+          return { roast: text, isAI: true };
+        }
+      } catch (err) {
+        console.warn(`Gemini API call failed with key slot #${keyIdx + 1}:`, err);
+        // Continue loop to try next key
+      }
     }
   }
 
-  // Final fallback if SDK calls fail
+  // 7. Try Option C: Final resilient fallback to local rules (No API crash)
+  console.warn("All configured AI methods failed or exhausted. Falling back to local roast engine.");
   return {
     roast: generateLocalRoast({ vehicle, mileage, manufacturerMileage, communityAverage, personalityMode, language }),
     isAI: false
