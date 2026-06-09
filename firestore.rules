@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Security rules for mileage entry submissions
+    match /mileage_entries/{entryId} {
+      
+      // Allow anyone (even unauthenticated/anonymous users) to read logs 
+      // so community statistics and leaderboards function correctly
+      allow read: if true;
+
+      // Allow anyone to create a mileage entry, ensuring basic validation
+      allow create: if request.resource.data.userId != null 
+                    && request.resource.data.vehicle != null 
+                    && request.resource.data.mileage != null;
+
+      // Disable updating/deleting to prevent tampering with community mileage logs
+      allow update, delete: if false;
+    }
+  }
+}
