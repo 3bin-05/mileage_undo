@@ -1,6 +1,104 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
+function Gear({ pitchRadius, teeth, rotateValue, duration, colorClass, initialRotate = 0 }) {
+  const wb = 8.5; // base width
+  const wt = 5.2; // tip width
+  const h = 7.5;  // tooth height
+  const points = `-${wb/2},-${pitchRadius} -${wt/2},-${pitchRadius + h} ${wt/2},-${pitchRadius + h} ${wb/2},-${pitchRadius}`;
+
+  // Rings
+  const outerRingRadius = pitchRadius - 4;
+  const outerRingStrokeWidth = 8;
+  const hubRadius = pitchRadius * 0.28;
+  const hubStrokeWidth = hubRadius * 0.5;
+
+  // Spokes - calculate position to fit nicely between hub and outer ring
+  const spokeStart = hubRadius + hubStrokeWidth / 2;
+  const spokeEnd = outerRingRadius - 4;
+
+  return (
+    <motion.g
+      initial={{ rotate: initialRotate }}
+      animate={{ rotate: rotateValue }}
+      transition={{ repeat: Infinity, ease: "linear", duration }}
+      style={{ transformOrigin: "0px 0px" }}
+      className={colorClass}
+    >
+      {/* Outer Ring */}
+      <circle
+        cx="0"
+        cy="0"
+        r={outerRingRadius}
+        stroke="currentColor"
+        strokeWidth={outerRingStrokeWidth}
+        fill="none"
+      />
+
+      {/* Inner Hub */}
+      <circle
+        cx="0"
+        cy="0"
+        r={hubRadius}
+        stroke="currentColor"
+        strokeWidth={hubStrokeWidth}
+        fill="none"
+      />
+
+      {/* Spokes - 4 cross spokes */}
+      <line
+        x1="0"
+        y1={-spokeStart}
+        x2="0"
+        y2={-spokeEnd}
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="0"
+        y1={spokeStart}
+        x2="0"
+        y2={spokeEnd}
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1={-spokeStart}
+        y1="0"
+        x2={-spokeEnd}
+        y2="0"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1={spokeStart}
+        y1="0"
+        x2={spokeEnd}
+        y2="0"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+
+      {/* Center axis dot */}
+      <circle cx="0" cy="0" r="2.5" fill="currentColor" />
+
+      {/* Teeth */}
+      {Array.from({ length: teeth }).map((_, i) => (
+        <polygon
+          key={i}
+          points={points}
+          fill="currentColor"
+          transform={`rotate(${(i * 360) / teeth} 0 0)`}
+        />
+      ))}
+    </motion.g>
+  );
+}
+
 export default function Preloader({ onComplete }) {
   const [percent, setPercent] = useState(0);
 
@@ -29,79 +127,50 @@ export default function Preloader({ onComplete }) {
       {/* Grid Desk Background */}
       <div className="absolute inset-0 bg-[radial-gradient(rgba(0,0,0,0.04)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none"></div>
 
-      <div className="relative w-full max-w-md px-8 flex flex-col items-center space-y-12 z-10">
-        
-        {/* Logo Header */}
-        <div className="flex items-center space-x-3">
-          <img src="/mu.png" alt="MU Logo" className="w-12 h-12 rounded-lg object-contain shadow-md border border-gray-200/50 bg-white" />
-          <span className="text-sm font-black tracking-widest uppercase text-neutral-900">MILEAGE UNDO</span>
-        </div>
+      <div className="relative w-full max-w-md px-8 flex flex-col items-center space-y-8 z-10">
 
-        {/* Lined Roadway with Animating Car */}
-        <div className="relative w-full h-28 overflow-hidden border-b-2 border-dashed border-gray-300">
-          
-          {/* Road guidelines moving left */}
-          <motion.div 
-            animate={{ x: [0, -40] }}
-            transition={{ repeat: Infinity, ease: "linear", duration: 0.45 }}
-            className="absolute bottom-0 left-0 right-[-40px] h-1.5 bg-gray-300"
-          ></motion.div>
+        {/* Moving Gears Animation Container */}
+        <div className="relative w-full h-48 flex items-center justify-center">
+          <svg viewBox="0 0 200 120" className="w-64 h-36 drop-shadow-sm">
+            {/* Mechanical Mounting Bracket behind gears */}
+            <line 
+              x1="65" 
+              y1="60" 
+              x2="135" 
+              y2="60" 
+              stroke="#e2e8f0" 
+              strokeWidth="10" 
+              strokeLinecap="round" 
+            />
+            <circle cx="65" cy="60" r="14" fill="#cbd5e1" />
+            <circle cx="135" cy="60" r="14" fill="#cbd5e1" />
+            <circle cx="65" cy="60" r="6" fill="#94a3b8" />
+            <circle cx="135" cy="60" r="6" fill="#94a3b8" />
 
-          {/* Car Driving from Left to Right */}
-          <motion.div
-            animate={{ 
-              x: ["-25%", "125%"] 
-            }}
-            transition={{ 
-              repeat: Infinity, 
-              ease: "easeInOut", 
-              duration: 2.6
-            }}
-            className="absolute bottom-1 w-32 h-16 flex flex-col items-center justify-end"
-          >
-            {/* Engine vibration container */}
-            <motion.div
-              animate={{ y: [0, -1.5, 0] }}
-              transition={{ repeat: Infinity, duration: 0.12, ease: "linear" }}
-              className="w-full h-full relative flex flex-col items-center justify-end"
-            >
-              {/* Sleek Sports Car Design (matching user silhouette image) */}
-              <svg viewBox="0 0 100 40" className="w-28 h-10 text-neutral-950 fill-current">
-                <path d="M 8 29 L 8 22.5 L 6 22.5 L 3 17 L 1 17 L 1 15.5 L 11 15.5 L 10 17 L 8 17 L 8 22.5 C 14 22, 20 20.5, 26 19.5 C 36 15, 46 13, 56 13 C 64 13, 72 17, 78 21.5 C 84 23.5, 90 24.5, 96 24.5 C 98.5 24.5, 99.5 25.5, 99.5 27.5 L 99 29 L 83 29 A 7 7 0 0 0 69 29 L 33 29 A 7 7 0 0 0 19 29 L 8 29 Z" />
-                {/* Windows */}
-                <path d="M 33 21 C 41 16.5, 48 15.5, 54 15.5 C 59 15.5, 65 17, 69 21 Z" fill="#f3f5f8" />
-                <path d="M 51 15.5 L 53 15.5 L 53 21 L 51 21 Z" fill="currentColor" />
-              </svg>
+            {/* Gear 1: Large Clockwise Gear (12 teeth, pitchRadius 42, starting at 0 degrees) */}
+            <g transform="translate(65, 60)">
+              <Gear
+                pitchRadius={42}
+                teeth={12}
+                initialRotate={0}
+                rotateValue={360}
+                duration={8}
+                colorClass="text-neutral-900"
+              />
+            </g>
 
-              {/* Spin-wheel overlays positioned precisely under SVG wheel wells */}
-              <div className="absolute inset-x-0 bottom-[-2.5px] h-5 pointer-events-none">
-                {/* Rear wheel */}
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, ease: "linear", duration: 0.25 }}
-                  className="absolute left-[27px] w-5 h-5 rounded-full bg-neutral-950 flex items-center justify-center shadow-sm"
-                >
-                  {/* Thin white rim line */}
-                  <div className="w-3.5 h-3.5 rounded-full border-1.5 border-white bg-neutral-950 flex items-center justify-center">
-                    <div className="w-1 h-1 rounded-full bg-white/40"></div>
-                  </div>
-                </motion.div>
-                
-                {/* Front wheel */}
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, ease: "linear", duration: 0.25 }}
-                  className="absolute right-[25px] w-5 h-5 rounded-full bg-neutral-950 flex items-center justify-center shadow-sm"
-                >
-                  {/* Thin white rim line */}
-                  <div className="w-3.5 h-3.5 rounded-full border-1.5 border-white bg-neutral-950 flex items-center justify-center">
-                    <div className="w-1 h-1 rounded-full bg-white/40"></div>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </motion.div>
-
+            {/* Gear 2: Small Counter-Clockwise Gear (8 teeth, pitchRadius 28, starting at 22.5 degrees for perfect mesh) */}
+            <g transform="translate(135, 60)">
+              <Gear
+                pitchRadius={28}
+                teeth={8}
+                initialRotate={22.5}
+                rotateValue={22.5 - 540} // -540 degrees (1.5 full rotations) to mesh perfectly with the 12-tooth gear
+                duration={8}
+                colorClass="text-neutral-400"
+              />
+            </g>
+          </svg>
         </div>
 
         {/* Progress bar and statistics text */}
