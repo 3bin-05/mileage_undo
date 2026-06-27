@@ -17,17 +17,19 @@ const getStableTxId = (idStr, timestampStr) => {
 
 export default function Receipt() {
   const { currentCalculation, receiptOpen, setReceiptOpen, personalityMode } = useStore();
-  const receiptRef = useRef(null);
   const receiptPaperRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
 
-  // Destructure variables at the top with a fallback to satisfy scoping rules in closures
+  // Destructure variables at the top
   const {
     vehicle = "",
+    vehicleBrand = "",
+    vehicleModel = "",
+    vehicleCategory = "",
     fuelType = "",
     distance = 0,
     fuelFilled = 0,
-    district = "",
+    rideType = "",
     mileage = 0,
     rating = "",
     badgeName = "",
@@ -36,25 +38,27 @@ export default function Receipt() {
     roast = "",
     isAI = false,
     timestamp = "",
-    tripMode = false,
-    startLocation = "",
-    destination = "",
-    amountSpent = null,
-    fuelPrice = null,
+    confidenceScore = 30,
+    isSuspicious = false,
+    healthScore = 100,
+    healthRating = "Average",
+    healthVerdict = "",
     id = ""
   } = currentCalculation || {};
+
+  const brand = vehicleBrand || vehicle.split(" ")[0] || "Unknown";
+  const model = vehicleModel || vehicle.split(" ").slice(1).join(" ") || vehicle;
 
   const downloadReceiptImage = async () => {
     if (!receiptPaperRef.current) return;
     setDownloading(true);
     
     try {
-      // Small delay to ensure styles are applied
       await new Promise(resolve => setTimeout(resolve, 150));
       
       const dataUrl = await toPng(receiptPaperRef.current, {
         backgroundColor: '#fbfbf7',
-        pixelRatio: 2, // Retain high quality
+        pixelRatio: 2,
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left',
@@ -65,7 +69,7 @@ export default function Receipt() {
       
       const fileSuffix = timestamp ? new Date(timestamp).getTime() : 'receipt';
       const link = document.createElement('a');
-      link.download = `mileage-undo-${vehicle ? vehicle.replace(/\s+/g, '-').toLowerCase() : 'receipt'}-${fileSuffix}.png`;
+      link.download = `mileage-undo-${brand.replace(/\s+/g, '-').toLowerCase()}-${model.replace(/\s+/g, '-').toLowerCase()}-${fileSuffix}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
@@ -76,12 +80,11 @@ export default function Receipt() {
     }
   };
 
-  // Memoize stable transaction ID for render purity
   const txId = useMemo(() => getStableTxId(id, timestamp), [id, timestamp]);
 
-  // Trigger confetti for Excellent mileage rating
+  // Trigger confetti for Excellent mileage health rating
   useEffect(() => {
-    if (receiptOpen && currentCalculation && currentCalculation.rating === "Excellent") {
+    if (receiptOpen && currentCalculation && healthRating === "Excellent") {
       const duration = 2.5 * 1000;
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
@@ -102,11 +105,10 @@ export default function Receipt() {
 
       return () => clearInterval(interval);
     }
-  }, [receiptOpen, currentCalculation]);
+  }, [receiptOpen, currentCalculation, healthRating]);
 
   if (!receiptOpen || !currentCalculation) return null;
 
-  // Format timestamp
   const dateFormatted = timestamp 
     ? new Date(timestamp).toLocaleDateString("en-IN", {
         day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
@@ -115,97 +117,64 @@ export default function Receipt() {
         day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
       });
 
-  // Calculate percentage alignment for gauge slider (0% to 100%)
-  // Standard mileage ranges: 5 kmpl to 30 kmpl.
+  // Calculate percentage alignment for gauge slider (0% to 150% health score)
   const getGaugePercentage = () => {
-    const minM = 5;
-    const maxM = 30;
-    const clamped = Math.max(minM, Math.min(maxM, mileage));
-    return ((clamped - minM) / (maxM - minM)) * 100;
-  };
-
-  // Humorous Malayalam Mileage Verdict System
-  const getMileageVerdict = () => {
-    if (rating === "Excellent") {
-      return {
-        label: "Achan Happy 👴",
-        style: "verdict-stamp-achan",
-        subtext: "Shabaash! Comparing with neighbor's son now."
-      };
-    }
-    if (rating === "Good" || rating === "Average") {
-      return {
-        label: "Uncle Acceptable 🧔",
-        style: "verdict-stamp-uncle",
-        subtext: "Mild nods of approval from local tea shop."
-      };
-    }
-    return {
-      label: "Pump Owner Happy ⛽",
-      style: "verdict-stamp-pump",
-      subtext: "Sponsoring pump owner's next Dubai trip!"
-    };
+    const clamped = Math.max(0, Math.min(150, healthScore));
+    return (clamped / 150) * 100;
   };
 
   // WhatsApp share link generator
   const getWhatsAppShareUrl = () => {
-    let text = `*Mileage Undo Report* 🧾\n\n`;
-    text += `🚗 *Vehicle:* ${vehicle} (${fuelType})\n`;
-    if (tripMode) {
-      text += `🛣️ *Route:* ${startLocation} ➔ ${destination}\n`;
-    }
+    let text = `*Mileage Undo Audit Slip* 🧾\n\n`;
+    text += `🚗 *Vehicle:* ${brand} ${model} (${fuelType})\n`;
+    text += `🛣️ *Ride Type:* ${rideType}\n`;
     text += `🛣️ *Distance:* ${distance} km\n`;
-    if (tripMode) {
-      text += `💰 *Spent:* ₹${amountSpent} (@ ₹${fuelPrice}/${fuelType === "EV" ? "%" : "L"})\n`;
-    }
     text += `⛽ *Consumed:* ${fuelType === "EV" ? fuelFilled + "% battery" : fuelFilled + " L"}\n`;
-    text += `🔥 *Real Mileage:* ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}\n\n`;
-    text += `🏆 *Awarded Rank:* ${badgeEmoji} ${badgeName}\n`;
+    text += `🔥 *Real Mileage:* ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}\n`;
+    text += `📊 *Health Score:* ${healthScore}% (${healthRating})\n\n`;
+    text += `💬 *Verdict:* "${healthVerdict}"\n`;
+    text += `🏆 *Awarded Stamp:* ${badgeEmoji} ${badgeName}\n`;
+    text += `⚖️ *Confidence Index:* ${confidenceScore}/100\n\n`;
     text += `💬 *${personalityMode} says:*\n"${roast}"\n\n`;
-    text += `Calculate yours at *Mileage Undo*! 🚀`;
+    text += `Check your real-world efficiency at *Mileage Undo*! 🚀`;
 
     return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   };
 
   // Clipboard copy handler
   const copyToClipboard = () => {
-    let text = `Mileage Undo Report 🧾\n`;
-    text += `Vehicle: ${vehicle} (${fuelType})\n`;
-    if (tripMode) {
-      text += `Route: ${startLocation} ➔ ${destination}\n`;
-    }
+    let text = `Mileage Undo Audit Slip 🧾\n`;
+    text += `Vehicle: ${brand} ${model} (${fuelType})\n`;
+    text += `Ride Type: ${rideType}\n`;
     text += `Distance: ${distance} km\n`;
-    if (tripMode) {
-      text += `Fuel Cost: ₹${amountSpent} (@ ₹${fuelPrice}/${fuelType === "EV" ? "%" : "L"})\n`;
-    }
     text += `Real Mileage: ${mileage} ${fuelType === "EV" ? "km/%" : "kmpl"}\n`;
-    text += `Rank: ${badgeEmoji} ${badgeName}\n`;
+    text += `Health Score: ${healthScore}% (${healthRating})\n`;
+    text += `Verdict: "${healthVerdict}"\n`;
+    text += `Stamp: ${badgeEmoji} ${badgeName}\n`;
+    text += `Confidence Score: ${confidenceScore}/100\n`;
     text += `Roast: "${roast}"`;
     
     navigator.clipboard.writeText(text);
-    alert("Receipt summary copied to clipboard! 📋");
+    alert("Audit summary copied to clipboard! 📋");
   };
 
-  // Rating color map for thermal printer style (black/white/greyscale)
   const getRatingBadgeText = () => {
-    switch(rating) {
-      case "Excellent": return "★★★★★ ECO CHAMP";
-      case "Good": return "★★★★☆ GOOD WORK";
-      case "Average": return "★★★☆☆ SO-SO";
-      case "Poor": return "★★☆☆☆ POOR STAT";
-      default: return "★☆☆☆☆ CRITICAL FUEL HOG";
+    switch(healthRating) {
+      case "Excellent": return "★★★★★ ECO CHAMPION";
+      case "Good": return "★★★★☆ GOOD PROGRESS";
+      case "Average": return "★★★☆☆ NORMAL COMMUTE";
+      default: return "★☆☆☆☆ NEEDS ATTENTION";
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-start bg-neutral-950/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="max-w-md w-full my-8 relative" ref={receiptRef}>
-        
+      <div className="max-w-md w-full my-8 relative">
         {/* Top Control Buttons */}
         <div className="flex justify-between items-center mb-2 px-1">
           <span className="text-[10px] uppercase font-bold tracking-wider text-white flex items-center space-x-1">
             <span className="w-1.5 h-1.5 bg-accentGreen rounded-full animate-ping"></span>
-            <span>Receipt Issued</span>
+            <span>Audit Slip Issued</span>
           </span>
           <button 
             onClick={() => setReceiptOpen(false)}
@@ -227,28 +196,27 @@ export default function Receipt() {
           <div className="receipt-serrated-top"></div>
           <div className="receipt-serrated-bottom"></div>
 
-          {/* Dotted Grid Overlay Background (Subtle) */}
+          {/* Dotted Grid Overlay Background */}
           <div className="absolute inset-0 bg-[radial-gradient(#d3d3c9_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none"></div>
 
           <div className="relative space-y-5 text-center mt-2">
-            
             {/* Store Header */}
             <div>
               <h1 className="text-xl font-extrabold tracking-widest uppercase m-0 leading-none">MILEAGE UNDO</h1>
               <p className="text-[9px] font-bold tracking-wider opacity-85 mt-1 border-b border-dashed border-gray-400 pb-2">
-                COMMUNITY MILEAGE INTELLIGENCE
+                REAL-WORLD MILEAGE LEDGER
               </p>
             </div>
 
-            {/* Receipt details metadata */}
+            {/* Metadata */}
             <div className="flex justify-between text-[10px] font-bold opacity-80 border-b border-dashed border-gray-400 pb-2 text-left">
               <div>
                 <p>TX: #MU-{txId}</p>
-                <p>LOC: {district.toUpperCase()}, KERALA</p>
+                <p>AUDIT: COMMUNITY v2.0</p>
               </div>
               <div className="text-right">
                 <p>DATE: {dateFormatted}</p>
-                <p>API: {isAI ? "GEMINI-AI" : "LOCAL-RULE"}</p>
+                <p>SOURCE: {isAI ? "GEMINI-AI" : "LOCAL-RULE"}</p>
               </div>
             </div>
 
@@ -256,14 +224,22 @@ export default function Receipt() {
             <div className="space-y-1.5 text-xs text-left">
               <div className="flex justify-between font-bold">
                 <span>VEHICLE MODEL</span>
-                <span className="text-right uppercase max-w-[180px] truncate">{vehicle}</span>
+                <span className="text-right uppercase max-w-[180px] truncate">{brand} {model}</span>
+              </div>
+              <div className="flex justify-between opacity-85">
+                <span>VEHICLE SEGMENT</span>
+                <span className="text-right uppercase">{vehicleCategory}</span>
               </div>
               <div className="flex justify-between opacity-85">
                 <span>FUEL CLASSIFICATION</span>
                 <span className="text-right">{fuelType}</span>
               </div>
               <div className="flex justify-between opacity-85">
-                <span>DISTANCE TRAVELLED</span>
+                <span>DRIVING CONDITIONS</span>
+                <span className="text-right uppercase">{rideType}</span>
+              </div>
+              <div className="flex justify-between opacity-85">
+                <span>DISTANCE RUN</span>
                 <span className="text-right">{distance} KM</span>
               </div>
               <div className="flex justify-between opacity-85 border-b border-dashed border-gray-400 pb-2.5">
@@ -271,43 +247,32 @@ export default function Receipt() {
                 <span className="text-right">{fuelFilled} {fuelType === "EV" ? "%" : "L"}</span>
               </div>
 
-              {/* Trip Mode parameters if active */}
-              {tripMode && (
-                <div className="border-b border-dashed border-gray-400 pb-2.5 space-y-1.5 font-mono text-[10px]">
-                  <div className="flex justify-between opacity-85">
-                    <span>ROUTE FROM</span>
-                    <span className="text-right uppercase max-w-[170px] truncate">{startLocation}</span>
-                  </div>
-                  <div className="flex justify-between opacity-85">
-                    <span>ROUTE TO</span>
-                    <span className="text-right uppercase max-w-[170px] truncate">{destination}</span>
-                  </div>
-                  <div className="flex justify-between opacity-85">
-                    <span>AMOUNT SPENT</span>
-                    <span className="text-right">₹{amountSpent}</span>
-                  </div>
-                  <div className="flex justify-between opacity-85">
-                    <span>{fuelType === "EV" ? "CHARGE RATE" : "FUEL PRICE"}</span>
-                    <span className="text-right">₹{fuelPrice}/{fuelType === "EV" ? "%" : "L"}</span>
-                  </div>
-                </div>
-              )}
-              
               <div className="flex justify-between font-extrabold text-base pt-2.5">
                 <span>REAL MILEAGE:</span>
                 <span className="text-right underline decoration-wavy decoration-1 underline-offset-4">
                   {mileage} {fuelType === "EV" ? "KM/%" : "KMPL"}
                 </span>
               </div>
+              
+              <div className="flex justify-between font-bold text-xs pt-1 border-b border-dashed border-gray-400 pb-2">
+                <span>HEALTH SCORE:</span>
+                <span className={`text-right font-black ${
+                  healthRating === "Excellent" ? "text-green-700" :
+                  healthRating === "Good" ? "text-green-600" :
+                  healthRating === "Average" ? "text-amber-700" : "text-red-700"
+                }`}>
+                  {healthScore}% ({healthRating.toUpperCase()})
+                </span>
+              </div>
             </div>
 
-            {/* Gauge slider section */}
-            <div className="space-y-2 border-t border-b border-dashed border-gray-400 py-3.5 text-left">
-              <span className="text-[9px] font-bold tracking-wider uppercase opacity-85">Efficiency Scale</span>
+            {/* Health Score Gauge slider */}
+            <div className="space-y-2 border-b border-dashed border-gray-400 pb-3.5 text-left">
+              <span className="text-[9px] font-bold tracking-wider uppercase opacity-85">Community Comparison Gauge</span>
               <div className="relative w-full h-3 bg-gray-200 border border-gray-400 rounded-sm overflow-visible">
                 {/* Visual marker points */}
-                <div className="absolute left-[30%] top-0 bottom-0 border-l border-dashed border-gray-400"></div>
-                <div className="absolute left-[70%] top-0 bottom-0 border-l border-dashed border-gray-400"></div>
+                <div className="absolute left-[40%] top-0 bottom-0 border-l border-dashed border-gray-400"></div> {/* 60% mark */}
+                <div className="absolute left-[66.7%] top-0 bottom-0 border-l border-dashed border-gray-400"></div> {/* 100% (average) mark */}
                 
                 {/* Needle slider indicator */}
                 <div 
@@ -318,26 +283,27 @@ export default function Receipt() {
                 </div>
               </div>
               <div className="flex justify-between text-[8px] font-bold opacity-75">
-                <span>DRINKER (5)</span>
-                <span>AVERAGE (15)</span>
-                <span>LEGEND (30)</span>
+                <span>NEEDS WORK (0%)</span>
+                <span>AVERAGE (100%)</span>
+                <span>CHAMP (150%)</span>
               </div>
             </div>
 
-            {/* Humorous Mileage Verdict Stamp System */}
-            {(() => {
-              const verdict = getMileageVerdict();
-              return (
-                <div className="verdict-stamp-box">
-                  <div className={`verdict-stamp ${verdict.style}`}>
-                    {verdict.label}
-                  </div>
-                  <div className="verdict-stamp-subtext opacity-70">
-                    {verdict.subtext}
-                  </div>
+            {/* Fun Verdict Stamp */}
+            {healthVerdict && (
+              <div className="verdict-stamp-box border-b border-dashed border-gray-400 pb-3">
+                <div className={`verdict-stamp ${
+                  healthRating === "Excellent" ? "verdict-stamp-achan" :
+                  healthRating === "Good" || healthRating === "Average" ? "verdict-stamp-uncle" : "verdict-stamp-pump"
+                }`}>
+                  {healthRating === "Excellent" ? "Achan Happy 👴" :
+                   healthRating === "Good" || healthRating === "Average" ? "Ammavan Stamped 🧔" : "Pump Owner Happy ⛽"}
                 </div>
-              );
-            })()}
+                <div className="verdict-stamp-subtext opacity-85 mt-2 font-mono text-[9px] italic leading-relaxed text-neutral-800">
+                  "{healthVerdict}"
+                </div>
+              </div>
+            )}
 
             {/* Gamification Badge Box */}
             <div className="p-3 bg-gray-200/80 border border-gray-300 rounded-lg text-center space-y-1">
@@ -346,11 +312,25 @@ export default function Receipt() {
               <p className="text-[9px] italic opacity-85 leading-snug">{badgeDesc}</p>
             </div>
 
+            {/* Confidence Score Panel */}
+            <div className="p-3 border border-gray-300 rounded-lg text-left space-y-1 font-mono text-[9px] bg-neutral-50/50">
+              <div className="flex justify-between font-bold text-neutral-800">
+                <span>CONFIDENCE RATING:</span>
+                <span>{confidenceScore}/100</span>
+              </div>
+              <p className="text-[8px] text-gray-500 leading-snug">
+                {confidenceScore >= 90 ? "⚡ Verified high contributor status: ultra-reliable data." :
+                 confidenceScore >= 70 ? "✅ Active contributor data weighting applied." :
+                 confidenceScore >= 50 ? "✓ Multi-submission verified driver feedback." :
+                 "⚠️ New user profile. Standard confidence rating."}
+              </p>
+            </div>
+
             {/* Dynamic Roast Box */}
             <div className="p-4 bg-gray-900 text-white rounded-lg text-left space-y-1.5 relative border border-black shadow-inner">
               <div className="flex items-center justify-between">
                 <span className="text-[8px] font-bold tracking-widest text-accentGreen uppercase">
-                  {personalityMode.toUpperCase()} FEEDBACK
+                  {personalityMode.toUpperCase()} AUDIT REMARK
                 </span>
                 <span className="text-[7px] bg-white/10 text-gray-300 px-1 py-0.5 rounded font-mono">
                   {isAI ? "GEMINI AI" : "RULE-SET"}
@@ -369,9 +349,8 @@ export default function Receipt() {
             {/* Bottom Barcode styling */}
             <div className="pt-2 flex flex-col items-center space-y-1">
               <div className="h-8 w-44 bg-[repeating-linear-gradient(90deg,#000,#000_2px,transparent_2px,transparent_6px,#000_6px,#000_9px,transparent_9px,transparent_11px)] opacity-85"></div>
-              <span className="text-[8px] font-mono tracking-widest font-bold">THANK YOU FOR BURNING FUEL</span>
+              <span className="text-[8px] font-mono tracking-widest font-bold">THANK YOU FOR LOGGING EFFICIENCY</span>
             </div>
-
           </div>
         </motion.div>
 
@@ -409,12 +388,7 @@ export default function Receipt() {
             <MessageSquare size={14} />
             <span>Share text summary on WhatsApp</span>
           </a>
-
-          <p className="text-[10px] text-center text-white/90 leading-snug">
-            💡 <strong>WhatsApp Photo Sharing:</strong> Click <strong>Save Photo</strong> to download the receipt card image, then send the photo directly to your WhatsApp chats!
-          </p>
         </div>
-
       </div>
     </div>
   );

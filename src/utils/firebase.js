@@ -16,6 +16,7 @@ import {
   orderBy, 
   serverTimestamp 
 } from "firebase/firestore";
+import { findManufacturerClaim } from "./mileageEngine";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -55,7 +56,16 @@ export const saveMileageEntry = async (userId, entry) => {
     ...entry,
     userId: userId || "anonymous",
     timestamp: new Date().toISOString(),
-    createdAt: isFirebaseConfigured ? serverTimestamp() : new Date().toISOString()
+    createdAt: isFirebaseConfigured ? serverTimestamp() : new Date().toISOString(),
+    // Phase 9: Future-ready architecture placeholders
+    fuelBillOcr: entry.fuelBillOcr || null,
+    odometerPhotoUrl: entry.odometerPhotoUrl || null,
+    isVerified: entry.isVerified || false,
+    acTracking: entry.acTracking || null,
+    passengerCount: entry.passengerCount || null,
+    vehicleAge: entry.vehicleAge || null,
+    fuelPriceHistory: entry.fuelPriceHistory || null,
+    regionalAnalysis: entry.regionalAnalysis || null
   };
 
   if (isFirebaseConfigured && db) {
@@ -104,7 +114,7 @@ export const fetchMileageEntries = async (userId) => {
 };
 
 // Fetch community averages / analytics for a specific vehicle model
-export const fetchCommunityStats = async (vehicleModel) => {
+export const fetchCommunityStats = async (brand, model, fuelType) => {
   let allEntries = [];
 
   if (isFirebaseConfigured && db) {
@@ -124,49 +134,109 @@ export const fetchCommunityStats = async (vehicleModel) => {
     allEntries = JSON.parse(localStorage.getItem("mileage_entries") || "[]");
   }
 
-  // Filter for matching vehicle model (case-insensitive fuzzy match)
-  const queryModel = (vehicleModel || "").trim().toLowerCase();
-  const matchingEntries = allEntries.filter(
-    entry => entry.vehicle && entry.vehicle.trim().toLowerCase().includes(queryModel)
-  );
+  // Filter for matching vehicle brand and model and fuel type (case-insensitive fuzzy match)
+  const normBrand = (brand || "").trim().toLowerCase();
+  const normModel = (model || "").trim().toLowerCase();
+  const normFuel = (fuelType || "").trim().toLowerCase();
 
-  if (matchingEntries.length === 0) {
+  const matchingEntries = allEntries.filter(entry => {
+    const entryBrand = (entry.vehicleBrand || "").trim().toLowerCase();
+    const entryModel = (entry.vehicleModel || entry.vehicle || "").trim().toLowerCase();
+    const entryFuel = (entry.fuelType || "").trim().toLowerCase();
+    
+    // Fuzzy matching for brand & model, or if the older 'vehicle' field matches
+    const brandMatch = entryBrand.includes(normBrand) || normBrand.includes(entryBrand) || (entry.vehicle && entry.vehicle.toLowerCase().includes(normBrand));
+    const modelMatch = entryModel.includes(normModel) || normModel.includes(entryModel) || (entry.vehicle && entry.vehicle.toLowerCase().includes(normModel));
+    const fuelMatch = entryFuel === normFuel || !fuelType; // optional fuel check
+    
+    return brandMatch && modelMatch && fuelMatch;
+  });
+
+  // Filter out suspicious entries (Phase 4)
+  const validEntries = matchingEntries.filter(e => !e.isSuspicious);
+
+  if (validEntries.length === 0) {
     return {
       averageMileage: 0,
-      totalSubmissions: 0,
-      districtBreakdown: {}
+      overallAverage: 0,
+      totalSubmissions: matchingEntries.length,
+      validSubmissionsCount: 0,
+      rideTypeStats: {
+        "City Ride": 0,
+        "Highway Ride": 0,
+        "Mixed Ride": 0
+      },
+      highestValid: 0,
+      lowestValid: 0,
+      totalUsers: 0,
+      reliabilityLevel: "Low",
+      averageConfidence: 30
     };
   }
 
-  const totalMileage = matchingEntries.reduce((sum, entry) => sum + parseFloat(entry.mileage || 0), 0);
-  const averageMileage = totalMileage / matchingEntries.length;
+  // Weighted overall average (Phase 5)
+  let totalWeightedMileage = 0;
+  let totalWeight = 0;
+  const uniqueUsers = new Set();
 
-  const districtBreakdown = {};
-  matchingEntries.forEach(entry => {
-    if (entry.district) {
-      if (!districtBreakdown[entry.district]) {
-        districtBreakdown[entry.district] = { sum: 0, count: 0 };
-      }
-      districtBreakdown[entry.district].sum += parseFloat(entry.mileage || 0);
-      districtBreakdown[entry.district].count += 1;
+  validEntries.forEach(entry => {
+    const score = entry.confidenceScore !== undefined ? entry.confidenceScore : 30;
+    totalWeightedMileage += parseFloat(entry.mileage || 0) * score;
+    totalWeight += score;
+    uniqueUsers.add(entry.userId || "anonymous");
+  });
+
+  const overallAverage = totalWeight > 0 ? parseFloat((totalWeightedMileage / totalWeight).toFixed(1)) : 0;
+
+  // Ride type breakdowns (weighted)
+  const rideTypes = ["City Ride", "Highway Ride", "Mixed Ride"];
+  const rideTypeStats = {};
+
+  rideTypes.forEach(type => {
+    const typeEntries = validEntries.filter(e => {
+      const eType = e.rideType || "Mixed Ride"; // Default if missing
+      return eType.toLowerCase() === type.toLowerCase();
+    });
+
+    if (typeEntries.length === 0) {
+      rideTypeStats[type] = 0;
+    } else {
+      let rWeightedMileage = 0;
+      let rWeight = 0;
+      typeEntries.forEach(e => {
+        const score = e.confidenceScore !== undefined ? e.confidenceScore : 30;
+        rWeightedMileage += parseFloat(e.mileage || 0) * score;
+        rWeight += score;
+      });
+      rideTypeStats[type] = rWeight > 0 ? parseFloat((rWeightedMileage / rWeight).toFixed(1)) : 0;
     }
   });
 
-  const formattedDistricts = {};
-  Object.keys(districtBreakdown).forEach(district => {
-    formattedDistricts[district] = (
-      districtBreakdown[district].sum / districtBreakdown[district].count
-    ).toFixed(2);
-  });
+  const mileages = validEntries.map(e => parseFloat(e.mileage || 0));
+  const highestValid = Math.max(...mileages);
+  const lowestValid = Math.min(...mileages);
+
+  const averageConfidence = validEntries.reduce((sum, e) => sum + (e.confidenceScore || 30), 0) / validEntries.length;
+  let reliabilityLevel = "Low";
+  if (averageConfidence >= 75) reliabilityLevel = "High";
+  else if (averageConfidence >= 50) reliabilityLevel = "Medium";
 
   return {
-    averageMileage: parseFloat(averageMileage.toFixed(2)),
+    averageMileage: overallAverage, // backward compatibility
+    overallAverage,
     totalSubmissions: matchingEntries.length,
-    districtBreakdown: formattedDistricts
+    validSubmissionsCount: validEntries.length,
+    rideTypeStats,
+    highestValid: parseFloat(highestValid.toFixed(1)),
+    lowestValid: parseFloat(lowestValid.toFixed(1)),
+    totalUsers: uniqueUsers.size,
+    reliabilityLevel,
+    averageConfidence: Math.round(averageConfidence),
+    rawEntries: validEntries
   };
 };
 
-// Fetch Global leaderboard (real-time aggregation from submissions)
+// Fetch Global leaderboard (returns all vehicle stats for vehicle-based rankings)
 export const fetchLeaderboard = async () => {
   let allEntries = [];
 
@@ -186,40 +256,73 @@ export const fetchLeaderboard = async () => {
     allEntries = JSON.parse(localStorage.getItem("mileage_entries") || "[]");
   }
 
-  // Aggregate by vehicle model
+  // Aggregate by vehicle model + category + fuel type
   const vehicleStats = {};
+  
   allEntries.forEach(entry => {
-    if (!entry.vehicle) return;
-    const model = entry.vehicle.trim();
-    const modelKey = model.toLowerCase();
+    // Exclude suspicious entries from leaderboard public stats
+    if (entry.isSuspicious) return;
 
-    if (!vehicleStats[modelKey]) {
-      vehicleStats[modelKey] = {
-        name: model,
-        sumMileage: 0,
-        count: 0,
-        fuelType: entry.fuelType || "Petrol"
+    let brand = entry.vehicleBrand || "";
+    let model = entry.vehicleModel || "";
+    let category = entry.vehicleCategory || "";
+    let fuelType = entry.fuelType || "Petrol";
+
+    // Backward compatibility for entries that have a combined "vehicle" field
+    if (!brand && !model && entry.vehicle) {
+      const cleanVehicle = entry.vehicle.trim();
+      const dbMatch = findManufacturerClaim(cleanVehicle);
+      if (dbMatch) {
+        brand = dbMatch.brand;
+        model = dbMatch.model;
+        category = dbMatch.segment;
+        fuelType = dbMatch.type;
+      } else {
+        brand = cleanVehicle.split(" ")[0] || "Unknown";
+        model = cleanVehicle.split(" ").slice(1).join(" ") || cleanVehicle;
+        category = "Car"; // default
+      }
+    }
+
+    if (!model) return;
+
+    const key = `${brand}_${model}_${fuelType}`.toLowerCase().replace(/\s+/g, "_");
+
+    if (!vehicleStats[key]) {
+      vehicleStats[key] = {
+        brand,
+        model,
+        name: `${brand} ${model}`.trim(),
+        category: category || "Car",
+        fuelType,
+        weightedSum: 0,
+        weightSum: 0,
+        submissions: 0
       };
     }
-    vehicleStats[modelKey].sumMileage += parseFloat(entry.mileage || 0);
-    vehicleStats[modelKey].count += 1;
+
+    const weight = entry.confidenceScore !== undefined ? entry.confidenceScore : 30;
+    vehicleStats[key].weightedSum += parseFloat(entry.mileage || 0) * weight;
+    vehicleStats[key].weightSum += weight;
+    vehicleStats[key].submissions += 1;
   });
 
-  const leaderboard = Object.values(vehicleStats).map(stat => ({
+  const vehicles = Object.values(vehicleStats).map(stat => ({
+    brand: stat.brand,
+    model: stat.model,
     vehicle: stat.name,
-    averageMileage: parseFloat((stat.sumMileage / stat.count).toFixed(2)),
-    submissions: stat.count,
-    fuelType: stat.fuelType
+    category: stat.category,
+    fuelType: stat.fuelType,
+    averageMileage: stat.weightSum > 0 ? parseFloat((stat.weightedSum / stat.weightSum).toFixed(1)) : 0,
+    submissions: stat.submissions
   }));
 
-  // Sort descending by average mileage
-  return leaderboard.sort((a, b) => b.averageMileage - a.averageMileage);
+  return vehicles;
 };
 
 // Auth Actions
 export const loginWithGoogle = async () => {
   if (!isFirebaseConfigured || !auth) {
-    // Local storage mock auth if offline
     const dummyUser = {
       uid: "local_user_123",
       displayName: "Mallu Driver",
