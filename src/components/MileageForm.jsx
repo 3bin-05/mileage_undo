@@ -17,10 +17,14 @@ import {
 } from "../utils/mileageEngine";
 import { fetchCommunityStats } from "../utils/firebase";
 import { getAIRoast } from "../utils/gemini";
-import { Fuel, Sparkles, MessageCircle, ArrowRight, AlertTriangle, Info } from "lucide-react";
+import { Fuel, Sparkles, MessageCircle, ArrowRight, AlertTriangle, Info, Lock, LogIn } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MileageForm() {
   const { 
+    user,
+    loginGoogle,
+    loginAnon,
     language, 
     setLanguage, 
     personalityMode, 
@@ -32,6 +36,7 @@ export default function MileageForm() {
   } = useStore();
 
   // Form State
+  const [showAuthPopup, setShowAuthPopup] = useState(false);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [category, setCategory] = useState("Car"); // "Bike" | "Car" | "SUV"
@@ -209,6 +214,23 @@ export default function MileageForm() {
         onSubmit={handleSubmit} 
         className="relative z-10 paper-sheet paper-stacked rounded-2xl mx-5 my-5 p-8 md:p-12 space-y-7 bg-[#fbfbf9] text-left text-neutral-800"
       >
+        {!user && (
+          <div 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowAuthPopup(true);
+            }} 
+            className="absolute inset-0 z-20 cursor-pointer rounded-2xl bg-neutral-900/[0.02] hover:bg-neutral-900/[0.04] backdrop-blur-[0.5px] transition-all duration-300 flex flex-col items-center justify-center text-center p-6"
+          >
+            <div className="bg-white/95 border border-gray-350 shadow-md px-4 py-3 rounded-2xl flex items-center space-x-2 animate-pulse hover:scale-105 transition-transform">
+              <Lock size={13} className="text-neutral-850" />
+              <span className="text-[10px] font-mono font-black uppercase tracking-wider text-neutral-850">
+                Click to unlock & enter details
+              </span>
+            </div>
+          </div>
+        )}
         {/* Document Header stamp */}
         <div className="border-b-2 border-double border-gray-300 pb-4 mb-2 flex items-center justify-between">
           <div>
@@ -495,6 +517,100 @@ export default function MileageForm() {
           </div>
         </div>
       )}
+
+      {/* Premium Authentication Required Modal */}
+      <AnimatePresence>
+        {showAuthPopup && !user && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white border-2 border-neutral-900 rounded-3xl max-w-md w-full p-8 shadow-2xl relative overflow-hidden"
+            >
+              {/* Top aesthetic banner */}
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-500"></div>
+
+              {/* SVG Distress Filter for Rubber Stamp */}
+              <svg className="absolute w-0 h-0" aria-hidden="true">
+                <filter id="popup-stamp-distress">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" result="noise" />
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+                </filter>
+              </svg>
+
+              {/* Retro Lock Stamp */}
+              <div className="mx-auto w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center border border-neutral-200 shadow-inner mb-6">
+                <Lock className="w-7 h-7 text-neutral-800 animate-pulse" />
+              </div>
+
+              <div className="text-center space-y-4">
+                <div 
+                  className="inline-block border-2 border-red-500 text-red-600 font-mono px-3 py-1 text-center rotate-[-3deg] uppercase text-xs font-black tracking-widest mx-auto"
+                  style={{
+                    mixBlendMode: "multiply",
+                    filter: "url(#popup-stamp-distress)",
+                  }}
+                >
+                  Auth Required
+                </div>
+
+                <h3 className="text-xl font-black uppercase text-neutral-900 tracking-tight mt-2">
+                  Mileage Ethra Mone?
+                </h3>
+                
+                <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
+                  Please sign in to log your trips, get audited by traditional roasters, and record official mileage entries in the community registry.
+                </p>
+              </div>
+
+              {/* Button Choices */}
+              <div className="mt-8 space-y-3">
+                {/* Google Sign In */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await loginGoogle();
+                  }}
+                  className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-850 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md transition-all duration-200 flex items-center justify-center space-x-2.5 hover:scale-[1.01] cursor-pointer"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.24 10.285V13.4h6.887C18.2 15.614 15.645 18 12.24 18c-3.86 0-7-3.14-7-7s3.14-7 7-7c1.7 0 3.3 0.64 4.56 1.77l2.44-2.44A10.96 10.96 0 0012.24 0C5.52 0 0 5.52 0 12.24s5.52 12.24 12.24 12.24c6.82 0 11.28-4.79 11.28-11.26 0-.76-.08-1.34-.2-1.935H12.24z"/>
+                  </svg>
+                  <span>Sign In with Google</span>
+                </button>
+
+                {/* Guest Driver */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await loginAnon();
+                  }}
+                  className="w-full py-3.5 bg-white hover:bg-neutral-50 text-neutral-800 text-xs font-bold uppercase tracking-wider rounded-xl border border-gray-300 transition-all duration-200 flex items-center justify-center space-x-2.5 hover:scale-[1.01] cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4 text-gray-500" />
+                  <span>Continue as Guest Driver</span>
+                </button>
+                
+                {/* Dismiss */}
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPopup(false)}
+                  className="w-full py-2.5 text-[10px] font-mono text-gray-400 hover:text-neutral-900 transition-colors uppercase tracking-widest cursor-pointer"
+                >
+                  [ Go back ]
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
