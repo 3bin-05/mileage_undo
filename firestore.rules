@@ -10,10 +10,17 @@ service cloud.firestore {
       // so community statistics and leaderboards function correctly
       allow read: if true;
 
-      // Allow anyone to create a mileage entry, ensuring basic validation
+      // Allow anyone to create a mileage entry, ensuring schema validation for V2
       allow create: if request.resource.data.userId != null 
-                    && request.resource.data.vehicle != null 
-                    && request.resource.data.mileage != null;
+                    && request.resource.data.vehicleBrand != null 
+                    && request.resource.data.vehicleModel != null
+                    && request.resource.data.vehicleCategory in ['Bike', 'Car', 'SUV']
+                    && request.resource.data.fuelType in ['Petrol', 'Diesel', 'CNG', 'EV']
+                    && request.resource.data.rideType in ['City Ride', 'Highway Ride', 'Mixed Ride']
+                    && request.resource.data.mileage is number 
+                    && request.resource.data.mileage > 0
+                    && request.resource.data.confidenceScore is number
+                    && request.resource.data.isSuspicious is bool;
 
       // Disable updating/deleting to prevent tampering with community mileage logs
       allow update, delete: if false;
