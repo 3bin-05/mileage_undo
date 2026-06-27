@@ -207,6 +207,60 @@ export default function CommunityLeaderboard() {
                 </div>
               </div>
 
+              {/* Average Mileage Section (New Requirement) */}
+              <div className="bg-neutral-50 border border-gray-200 rounded-xl p-5 space-y-4 shadow-sm relative overflow-hidden">
+                <h4 className="text-xs font-black uppercase tracking-wider text-neutral-800 flex items-center space-x-1.5 border-b border-gray-100 pb-3">
+                  <TrendingUp size={14} className="text-neutral-900" />
+                  <span>Average Mileage Profile</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  {/* ARAI mileage */}
+                  <div className="p-4 bg-white border border-gray-150 rounded-xl text-center">
+                    <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wide block">ARAI Claim</span>
+                    <p className="text-2xl font-black text-neutral-900 mt-1">
+                      {selectedVehicleStats?.araiMileage ? `${selectedVehicleStats.araiMileage} km/L` : "N/A"}
+                    </p>
+                  </div>
+
+                  {/* Community Average */}
+                  <div className="p-4 bg-white border border-gray-150 rounded-xl text-center">
+                    <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wide block">Community Average</span>
+                    <p className="text-2xl font-black text-neutral-900 mt-1">
+                      {selectedVehicleStats?.overallAverage ? `${selectedVehicleStats.overallAverage} km/L` : "0.0 km/L"}
+                    </p>
+                  </div>
+
+                  {/* Mileage Difference */}
+                  {(() => {
+                    const arai = parseFloat(selectedVehicleStats?.araiMileage || selectedVehicle.araiMileage);
+                    const comm = parseFloat(selectedVehicleStats?.overallAverage || selectedVehicle.averageMileage);
+                    const diff = (!isNaN(arai) && !isNaN(comm) && comm > 0) ? (comm - arai).toFixed(2) : null;
+                    return (
+                      <div className="p-4 bg-white border border-gray-150 rounded-xl text-center">
+                        <span className="text-[9px] font-mono text-gray-400 uppercase tracking-wide block">Difference</span>
+                        <p className={`text-2xl font-black mt-1 ${
+                          diff === null ? "text-neutral-900" :
+                          parseFloat(diff) >= 0 ? "text-green-700" : "text-red-750"
+                        }`}>
+                          {diff !== null ? `${parseFloat(diff) >= 0 ? "+" : ""}${diff} km/L` : "N/A"}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs font-mono font-bold text-gray-500 pt-2 border-t border-dashed border-gray-150">
+                  <div className="flex justify-between px-2">
+                    <span>Contributors:</span>
+                    <span className="text-neutral-900">{selectedVehicleStats?.totalUsers || 0}</span>
+                  </div>
+                  <div className="flex justify-between px-2">
+                    <span>Total Entries:</span>
+                    <span className="text-neutral-900">{selectedVehicleStats?.totalSubmissions || 0}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col justify-between">

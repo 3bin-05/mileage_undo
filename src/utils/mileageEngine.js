@@ -1,72 +1,62 @@
-// Popular Indian vehicles with manufacturer mileage claims (in kmpl) and segment classification
+// Predefined Indian vehicles list for seeding and fuzzy matches
 export const VEHICLE_DATABASE = [
+  // Toyota
+  { brand: "toyota", model: "glanza", claim: 22.35, type: "Petrol", segment: "Car" },
+  { brand: "toyota", model: "urban cruiser hyryder petrol", claim: 21.12, type: "Petrol", segment: "SUV" },
+  { brand: "toyota", model: "urban cruiser hyryder hybrid", claim: 27.97, type: "Petrol", segment: "SUV" },
+  { brand: "toyota", model: "innova hycross hybrid", claim: 23.24, type: "Petrol", segment: "SUV" },
+  { brand: "toyota", model: "fortuner diesel", claim: 14.4, type: "Diesel", segment: "SUV" },
+  { brand: "toyota", model: "rumion", claim: 20.51, type: "Petrol", segment: "SUV" },
+  { brand: "toyota", model: "camry hybrid", claim: 25.49, type: "Petrol", segment: "Car" },
+
+  // Maruti Suzuki
+  { brand: "maruti suzuki", model: "swift", claim: 24.8, type: "Petrol", segment: "Car" },
+  { brand: "maruti suzuki", model: "dzire", claim: 25.71, type: "Petrol", segment: "Car" },
+  { brand: "maruti suzuki", model: "baleno", claim: 22.94, type: "Petrol", segment: "Car" },
+  { brand: "maruti suzuki", model: "fronx", claim: 21.79, type: "Petrol", segment: "SUV" },
+  { brand: "maruti suzuki", model: "brezza", claim: 19.89, type: "Petrol", segment: "SUV" },
+  { brand: "maruti suzuki", model: "wagonr", claim: 24.35, type: "Petrol", segment: "Car" },
+  { brand: "maruti suzuki", model: "celerio", claim: 26.68, type: "Petrol", segment: "Car" },
+  { brand: "maruti suzuki", model: "ertiga", claim: 20.51, type: "Petrol", segment: "SUV" },
+  { brand: "maruti suzuki", model: "grand vitara hybrid", claim: 27.97, type: "Petrol", segment: "SUV" },
+
+  // Kia
+  { brand: "kia", model: "sonet petrol", claim: 18.4, type: "Petrol", segment: "SUV" },
+  { brand: "kia", model: "sonet diesel", claim: 24.1, type: "Diesel", segment: "SUV" },
+  { brand: "kia", model: "seltos petrol", claim: 17.9, type: "Petrol", segment: "SUV" },
+  { brand: "kia", model: "seltos diesel", claim: 20.7, type: "Diesel", segment: "SUV" },
+  { brand: "kia", model: "carens petrol", claim: 16.8, type: "Petrol", segment: "SUV" },
+  { brand: "kia", model: "carens diesel", claim: 21.3, type: "Diesel", segment: "SUV" },
+  { brand: "kia", model: "syros petrol", claim: 18.2, type: "Petrol", segment: "SUV" },
+
+  // Nissan
+  { brand: "nissan", model: "magnite petrol", claim: 19.9, type: "Petrol", segment: "SUV" },
+  { brand: "nissan", model: "magnite turbo", claim: 20.0, type: "Petrol", segment: "SUV" },
+  { brand: "nissan", model: "x-trail", claim: 13.7, type: "Petrol", segment: "SUV" },
+
+  // MG
+  { brand: "mg", model: "comet ev", claim: 7.5, type: "EV", segment: "Car" },
+  { brand: "mg", model: "astor petrol", claim: 15.4, type: "Petrol", segment: "SUV" },
+  { brand: "mg", model: "hector petrol", claim: 13.8, type: "Petrol", segment: "SUV" },
+  { brand: "mg", model: "hector diesel", claim: 17.4, type: "Diesel", segment: "SUV" },
+  { brand: "mg", model: "gloster diesel", claim: 13.9, type: "Diesel", segment: "SUV" },
+  { brand: "mg", model: "windsor ev", claim: 6.5, type: "EV", segment: "SUV" },
+  { brand: "mg", model: "zs ev", claim: 4.1, type: "EV", segment: "SUV" },
+
+  // Renault
+  { brand: "renault", model: "kwid", claim: 22.3, type: "Petrol", segment: "Car" },
+  { brand: "renault", model: "triber", claim: 19.0, type: "Petrol", segment: "Car" },
+  { brand: "renault", model: "kiger petrol", claim: 20.5, type: "Petrol", segment: "SUV" },
+  { brand: "renault", model: "kiger turbo", claim: 19.03, type: "Petrol", segment: "SUV" },
+
   // Bikes
-  { brand: "Honda", model: "Activa 6G", claim: 48.0, type: "Petrol", segment: "Bike" },
-  { brand: "Hero", model: "Splendor Plus", claim: 70.0, type: "Petrol", segment: "Bike" },
-  { brand: "Royal Enfield", model: "Classic 350", claim: 35.0, type: "Petrol", segment: "Bike" },
-  { brand: "Yamaha", model: "R15", claim: 45.0, type: "Petrol", segment: "Bike" },
-  { brand: "TVS", model: "Apache RTR 160", claim: 45.0, type: "Petrol", segment: "Bike" },
-  { brand: "Bajaj", model: "Pulsar 150", claim: 50.0, type: "Petrol", segment: "Bike" },
-  { brand: "Suzuki", model: "Access 125", claim: 48.0, type: "Petrol", segment: "Bike" },
-
-  // Cars
-  { brand: "Maruti Suzuki", model: "Alto 800", claim: 22.05, type: "Petrol", segment: "Car" },
-  { brand: "Maruti Suzuki", model: "Swift", claim: 22.38, type: "Petrol", segment: "Car" },
-  { brand: "Maruti Suzuki", model: "Baleno", claim: 22.35, type: "Petrol", segment: "Car" },
-  { brand: "Maruti Suzuki", model: "Wagon R", claim: 24.35, type: "Petrol", segment: "Car" },
-  { brand: "Maruti Suzuki", model: "Dzire", claim: 22.41, type: "Petrol", segment: "Car" },
-  { brand: "Hyundai", model: "Grand i10 Nios", claim: 20.70, type: "Petrol", segment: "Car" },
-  { brand: "Hyundai", model: "i20", claim: 20.35, type: "Petrol", segment: "Car" },
-  { brand: "Hyundai", model: "Verna", claim: 19.60, type: "Petrol", segment: "Car" },
-  { brand: "Honda", model: "City", claim: 17.80, type: "Petrol", segment: "Car" },
-  { brand: "Honda", model: "Amaze", claim: 18.60, type: "Petrol", segment: "Car" },
-  { brand: "Volkswagen", model: "Polo", claim: 17.21, type: "Petrol", segment: "Car" },
-  { brand: "Volkswagen", model: "Virtus", claim: 19.40, type: "Petrol", segment: "Car" },
-  { brand: "Skoda", model: "Slavia", claim: 19.47, type: "Petrol", segment: "Car" },
-  { brand: "Toyota", model: "Glanza", claim: 22.35, type: "Petrol", segment: "Car" },
-  { brand: "Tata", model: "Altroz", claim: 18.50, type: "Petrol", segment: "Car" },
-  { brand: "Tata", model: "Tiago", claim: 19.01, type: "Petrol", segment: "Car" },
-
-  // SUVs
-  { brand: "Maruti Suzuki", model: "Brezza", claim: 17.38, type: "Petrol", segment: "SUV" },
-  { brand: "Maruti Suzuki", model: "Grand Vitara", claim: 27.97, type: "Petrol", segment: "SUV" },
-  { brand: "Maruti Suzuki", model: "Ertiga", claim: 20.51, type: "Petrol", segment: "SUV" },
-  { brand: "Hyundai", model: "Creta", claim: 18.00, type: "Petrol", segment: "SUV" },
-  { brand: "Hyundai", model: "Venue", claim: 17.50, type: "Petrol", segment: "SUV" },
-  { brand: "Tata", model: "Punch", claim: 18.82, type: "Petrol", segment: "SUV" },
-  { brand: "Tata", model: "Nexon", claim: 17.44, type: "Petrol", segment: "SUV" },
-  { brand: "Tata", model: "Harrier", claim: 14.60, type: "Diesel", segment: "SUV" },
-  { brand: "Mahindra", model: "Thar", claim: 15.20, type: "Diesel", segment: "SUV" },
-  { brand: "Mahindra", model: "Scorpio-N", claim: 14.00, type: "Diesel", segment: "SUV" },
-  { brand: "Mahindra", model: "XUV700", claim: 12.00, type: "Petrol", segment: "SUV" },
-  { brand: "Mahindra", model: "Bolero", claim: 16.00, type: "Diesel", segment: "SUV" },
-  { brand: "Toyota", model: "Innova Crysta", claim: 11.50, type: "Diesel", segment: "SUV" },
-  { brand: "Toyota", model: "Innova Hycross", claim: 23.24, type: "Petrol", segment: "SUV" },
-  { brand: "Toyota", model: "Fortuner", claim: 10.00, type: "Diesel", segment: "SUV" },
-  { brand: "Skoda", model: "Kushaq", claim: 18.09, type: "Petrol", segment: "SUV" },
-  
-  // EV Section
-  { brand: "Tata", model: "Nexon EV", claim: 3.50, type: "EV", segment: "SUV" },
-  { brand: "MG", model: "ZS EV", claim: 4.10, type: "EV", segment: "SUV" },
-  { brand: "BYD", model: "Atto 3", claim: 4.80, type: "EV", segment: "SUV" },
-  { brand: "Tata", model: "Tiago EV", claim: 2.80, type: "EV", segment: "Car" }
-];
-
-export const KERALA_DISTRICTS = [
-  "Alappuzha",
-  "Ernakulam",
-  "Idukki",
-  "Kannur",
-  "Kasaragod",
-  "Kollam",
-  "Kottayam",
-  "Kozhikode",
-  "Malappuram",
-  "Palakkad",
-  "Pathanamthitta",
-  "Thiruvananthapuram",
-  "Thrissur",
-  "Wayanad"
+  { brand: "honda", model: "activa 6g", claim: 48.0, type: "Petrol", segment: "Bike" },
+  { brand: "hero", model: "splendor plus", claim: 70.0, type: "Petrol", segment: "Bike" },
+  { brand: "royal enfield", model: "classic 350", claim: 35.0, type: "Petrol", segment: "Bike" },
+  { brand: "yamaha", model: "r15", claim: 45.0, type: "Petrol", segment: "Bike" },
+  { brand: "tvs", model: "apache rtr 160", claim: 45.0, type: "Petrol", segment: "Bike" },
+  { brand: "bajaj", model: "pulsar 150", claim: 50.0, type: "Petrol", segment: "Bike" },
+  { brand: "suzuki", model: "access 125", claim: 48.0, type: "Petrol", segment: "Bike" }
 ];
 
 export const PERSONALITIES = [
@@ -96,10 +86,14 @@ export const MILEAGE_LIMITS = {
  * EV exception: we check alternative bounds for EV consumption (e.g. 0.5 to 15 km/%)
  */
 export const isMileageRealistic = (mileage, segment, fuelType) => {
-  if (fuelType === "EV") {
+  const normSeg = (segment || "").toLowerCase();
+  const limits = normSeg === "bike" ? MILEAGE_LIMITS.Bike 
+               : normSeg === "suv" ? MILEAGE_LIMITS.SUV 
+               : MILEAGE_LIMITS.Car;
+
+  if (fuelType && fuelType.toLowerCase() === "ev") {
     return mileage >= 0.5 && mileage <= 15.0;
   }
-  const limits = MILEAGE_LIMITS[segment] || MILEAGE_LIMITS["Car"];
   return mileage >= limits.min && mileage <= limits.max;
 };
 
@@ -143,7 +137,7 @@ export const evaluateMileageRating = (mileage, manufacturerClaim, fuelType) => {
   
   // If we don't know the manufacturer claim, use default benchmarks
   if (!mfg || isNaN(mfg)) {
-    if (fuelType === "EV") {
+    if (fuelType && fuelType.toLowerCase() === "ev") {
       if (mileage >= 4.0) return "Excellent";
       if (mileage >= 3.0) return "Good";
       if (mileage >= 2.2) return "Average";
@@ -171,7 +165,8 @@ export const evaluateMileageRating = (mileage, manufacturerClaim, fuelType) => {
  * Assign Gamification badges / ranks
  */
 export const getBadgeForCalculation = (rating, fuelType) => {
-  if (fuelType === "EV") {
+  const isEv = fuelType && fuelType.toLowerCase() === "ev";
+  if (isEv) {
     if (rating === "Excellent") return { name: "Green Wizard ⚡", emoji: "🧙‍♂️", desc: "Squeezing every meter out of those electrons." };
     if (rating === "Good") return { name: "Silent Commuter 🔇", emoji: "🚗", desc: "Efficient, silent, and responsible." };
     if (rating === "Average") return { name: "Grid Consumer 🔌", emoji: "🔋", desc: "Just charging and driving, average life." };
@@ -242,8 +237,9 @@ export const calculateHealthScore = (userMileage, communityAverage, segment) => 
   let baseline = communityAverage;
   if (!baseline || isNaN(baseline) || baseline <= 0) {
     // Fallbacks
-    if (segment === "Bike") baseline = 45;
-    else if (segment === "SUV") baseline = 12;
+    const normSeg = (segment || "").toLowerCase();
+    if (normSeg === "bike") baseline = 45;
+    else if (normSeg === "suv") baseline = 12;
     else baseline = 15; // Car
   }
   

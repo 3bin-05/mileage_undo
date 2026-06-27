@@ -94,9 +94,11 @@ export default function MileageForm() {
 
     const finalDistance = parseFloat(distance);
     const finalFuelFilled = parseFloat(fuelFilled);
-    const vehicleName = `${brand.trim()} ${model.trim()}`.trim();
+    const brandLower = brand.trim().toLowerCase();
+    const modelLower = model.trim().toLowerCase();
+    const vehicleName = `${brandLower} ${modelLower}`.trim();
 
-    if (!brand.trim() || !model.trim() || isNaN(finalDistance) || isNaN(finalFuelFilled) || finalDistance <= 0 || finalFuelFilled <= 0) {
+    if (!brandLower || !modelLower || isNaN(finalDistance) || isNaN(finalFuelFilled) || finalDistance <= 0 || finalFuelFilled <= 0) {
       alert("Please verify all input values. Trip distance and fuel quantity must be positive numbers.");
       return;
     }
@@ -113,7 +115,7 @@ export default function MileageForm() {
     setLoading(true);
     try {
       // 1. Fetch community statistics for outlier detection and health score
-      const communityStats = await fetchCommunityStats(brand, model, fuelType);
+      const communityStats = await fetchCommunityStats(brandLower, modelLower, fuelType);
       const communityAverage = communityStats ? communityStats.overallAverage : 0;
       const rawCommunityEntries = communityStats ? communityStats.rawEntries : [];
 
@@ -147,8 +149,8 @@ export default function MileageForm() {
 
       const entry = {
         vehicle: vehicleName,
-        vehicleBrand: brand.trim(),
-        vehicleModel: model.trim(),
+        vehicleBrand: brandLower,
+        vehicleModel: modelLower,
         vehicleCategory: category,
         fuelType,
         distance: finalDistance,

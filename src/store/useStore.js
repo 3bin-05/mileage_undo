@@ -6,13 +6,15 @@ import {
   saveMileageEntry, 
   loginWithGoogle, 
   loginAnonymously, 
-  signOutUser 
+  signOutUser,
+  seedVehiclesDatabase
 } from "../utils/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 export const useStore = create((set, get) => {
   // Initialize Firebase Auth listener if active
   if (isFirebaseConfigured && auth) {
+    seedVehiclesDatabase();
     onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         set({ user: firebaseUser, authLoading: false });

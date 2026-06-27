@@ -5,25 +5,51 @@ service cloud.firestore {
     
     // Security rules for mileage entry submissions
     match /mileage_entries/{entryId} {
-      
-      // Allow anyone (even unauthenticated/anonymous users) to read logs 
-      // so community statistics and leaderboards function correctly
-      allow read: if true;
+      // Authenticated users can read entries
+      allow read: if request.auth != null;
 
-      // Allow anyone to create a mileage entry, ensuring schema validation for V2
-      allow create: if request.resource.data.userId != null 
+      // Authenticated users can create entries with schema validation
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid
                     && request.resource.data.vehicleBrand != null 
                     && request.resource.data.vehicleModel != null
-                    && request.resource.data.vehicleCategory in ['Bike', 'Car', 'SUV']
-                    && request.resource.data.fuelType in ['Petrol', 'Diesel', 'CNG', 'EV']
+                    && request.resource.data.vehicleCategory in ['bike', 'car', 'suv']
+                    && request.resource.data.fuelType in ['petrol', 'diesel', 'cng', 'ev']
                     && request.resource.data.rideType in ['City Ride', 'Highway Ride', 'Mixed Ride']
                     && request.resource.data.mileage is number 
                     && request.resource.data.mileage > 0
                     && request.resource.data.confidenceScore is number
                     && request.resource.data.isSuspicious is bool;
 
-      // Disable updating/deleting to prevent tampering with community mileage logs
+      // Prevent editing other users' entries
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Prevent deleting entries
+      allow delete: if false;
+    }
+
+    // Security rules for vehicles master database
+    match /vehicles/{vehicleId} {
+      // Authenticated users can read vehicle data
+      allow read: if request.auth != null;
+
+      // Authenticated users can create new vehicle documents (Automatic Vehicle Creation)
+      allow create: if request.auth != null
+                    && request.resource.data.brand != null
+                    && request.resource.data.model != null
+                    && request.resource.data.vehicleId == vehicleId;
+
+      // Prevent manually modifying or deleting master vehicle documents
       allow update, delete: if false;
+    }
+
+    // Security rules for aggregated vehicle statistics
+    match /vehicleStats/{vehicleId} {
+      // Authenticated users can read statistics
+      allow read: if request.auth != null;
+
+      // Only trusted backend logic / admin SDK processes can update statistics
+      allow write, update, delete: if false;
     }
   }
 }
